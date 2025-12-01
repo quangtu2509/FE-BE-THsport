@@ -1,0 +1,12 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Thêm các kiểu cơ sở (base styles) mà bạn muốn áp dụng toàn trang.
+  Ví dụ: lấy từ body của file style.css
+*/
+@layer base {
+  body {
+    @apply font-['Arial',_sans-serif] bg-light-gray text-[#333];
+  }
+}

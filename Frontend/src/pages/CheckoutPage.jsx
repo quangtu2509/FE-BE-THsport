@@ -1,0 +1,315 @@
+// src/pages/CheckoutPage.jsx (Đã sửa đổi)
+import React, { useState } from "react";
+import { useCart } from "../context/CartContext";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext"; // THÊM: Import useAuth
+import { fetchApi } from "../utils/api"; // THÊM: Import fetchApi
+import { toast } from "react-toastify"; // THÊM: Import toast
+
+// Component con nội bộ cho 1 hàng sản phẩm tóm tắt
+function OrderSummaryItem({ item }) {
+  return (
+    <div className="flex justify-between items-center py-3 border-b">
+      <div className="flex items-center gap-3">
+        <img
+          src={item.imageUrl}
+          alt={item.name}
+          className="w-14 h-14 object-cover rounded-md border"
+        />
+        <div>
+          <p className="font-bold text-sm max-w-[200px] truncate">
+            {item.name}
+          </p>
+          <p className="text-xs text-gray-500">
+            Số lượng: {item.quantity}
+            {item.selectedSize && <span> / Size: {item.selectedSize}</span>}
+          </p>
+        </div>
+      </div>
+      <p className="font-bold text-sm">
+        {(item.price * item.quantity).toLocaleString("vi-VN")} ₫
+      </p>
+    </div>
+  );
+}
+
+// Component chính
+export default function CheckoutPage() {
+  const { cartItems, totalPrice, cartCount, clearCart } = useCart();
+  const { currentUser } = useAuth(); // Lấy người dùng hiện tại
+  const navigate = useNavigate();
+
+  const [paymentMethod, setPaymentMethod] = useState("cod"); // Mặc định là COD
+  const [formData, setFormData] = useState({
+    fullName: currentUser ? currentUser.name : "",
+    email: currentUser ? currentUser.email : "",
+    phone: "",
+    address: "",
+  });
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  // Hàm xử lý khi người dùng nhấn "Hoàn tất đơn hàng"
+  const handlePlaceOrder = async (e) => {
+    // SỬA: Thêm async
+    e.preventDefault();
+
+    // 1. Kiểm tra trạng thái giỏ hàng và đăng nhập
+    if (cartCount === 0) {
+      toast.error("Giỏ hàng trống.");
+      return;
+    }
+    if (!currentUser) {
+      toast.error("Vui lòng đăng nhập để đặt hàng.");
+      navigate("/dang-nhap");
+      return;
+    }
+
+    try {
+      // 2. Chuẩn bị dữ liệu cho API theo cấu trúc Order Model của Backend
+      const orderItems = cartItems.map((item) => ({
+        productId: item.originalProductId, // Sử dụng ID sản phẩm thật từ Backend
+        name: item.name,
+        price: item.price,
+        image: item.imageUrl,
+        quantity: item.quantity,
+      }));
+
+      const orderPayload = {
+        items: orderItems,
+        total: totalPrice,
+        paymentMethod: paymentMethod,
+        shippingAddress: {
+          fullName: formData.fullName,
+          phone: formData.phone,
+          address: formData.address,
+          // Có thể thêm city, district, v.v. vào formData nếu cần
+        },
+        notes: "Ghi chú của khách hàng (hiện tại không có ô nhập liệu)",
+      };
+
+      // 3. Gọi API tạo đơn hàng
+      await fetchApi("/orders", {
+        method: "POST",
+        body: JSON.stringify(orderPayload),
+      });
+
+      // 4. Thành công: Xóa giỏ hàng (Context sẽ gọi API xóa giỏ hàng)
+      clearCart();
+
+      // 5. Chuyển người dùng đến trang "Cảm ơn"
+      navigate("/dat-hang-thanh-cong");
+    } catch (error) {
+      console.error("Lỗi khi đặt hàng:", error);
+      toast.error(error.message || "Đặt hàng thất bại. Vui lòng thử lại.");
+    }
+  };
+
+  // Nếu giỏ hàng rỗng, không cho thanh toán
+  if (cartCount === 0) {
+    return (
+      <div className="container w-[90%] max-w-[1000px] mx-auto mt-10 py-20 text-center">
+        <h1 className="text-3xl font-bold mb-4">Giỏ hàng của bạn đang trống</h1>
+        <Link to="/" className="text-lg text-primary hover:underline">
+          Tiếp tục mua sắm
+        </Link>
+      </div>
+    );
+  }
+
+  // Layout 2 cột
+  return (
+    <div className="bg-gray-100 py-10">
+      <div className="container w-[90%] max-w-[1000px] mx-auto grid grid-cols-1 md:grid-cols-5 gap-8">
+        {/* === CỘT TRÁI (FORM) === */}
+        <form
+          onSubmit={handlePlaceOrder}
+          className="md:col-span-3 flex flex-col gap-6"
+        >
+          <h1 className="text-2xl font-bold">Thông tin giao hàng</h1>
+
+          {/* Form thông tin - SỬ DỤNG CONTROLLED COMPONENTS */}
+          <div className="bg-white p-6 rounded-lg shadow-sm">
+            <div className="grid grid-cols-2 gap-4">
+              <input
+                type="text"
+                placeholder="Họ và tên"
+                name="fullName"
+                value={formData.fullName}
+                onChange={handleInputChange}
+                required
+                className="col-span-2 p-3 border rounded-md"
+              />
+              <input
+                type="email"
+                placeholder="Email"
+                name="email"
+                value={formData.email}
+                onChange={handleInputChange}
+                required
+                className="col-span-1 p-3 border rounded-md"
+              />
+              <input
+                type="tel"
+                placeholder="Số điện thoại"
+                name="phone"
+                value={formData.phone}
+                onChange={handleInputChange}
+                required
+                className="col-span-1 p-3 border rounded-md"
+              />
+              <input
+                type="text"
+                placeholder="Địa chỉ (Số nhà, tên đường, Phường/Xã, Quận/Huyện, Tỉnh/TP)"
+                name="address"
+                value={formData.address}
+                onChange={handleInputChange}
+                required
+                className="col-span-2 p-3 border rounded-md"
+              />
+            </div>
+          </div>
+
+          {/* Form phương thức thanh toán */}
+          <h2 className="text-2xl font-bold">Phương thức thanh toán</h2>
+          <div className="bg-white p-6 rounded-lg shadow-sm flex flex-col gap-4">
+            {/* Lựa chọn 1: Chuyển khoản */}
+            <div
+              onClick={() => setPaymentMethod("bank")}
+              className={`border p-4 rounded-md cursor-pointer ${
+                paymentMethod === "bank" ? "border-primary" : ""
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <input
+                  type="radio"
+                  name="paymentMethod"
+                  value="bank"
+                  checked={paymentMethod === "bank"}
+                  onChange={() => setPaymentMethod("bank")}
+                  className="w-5 h-5"
+                />
+                <img
+                  src="https://theme.hstatic.net/1000061481/1001035882/14/payment_method_vnpay_logo.png?v=2391"
+                  alt="Chuyển khoản"
+                  className="h-8"
+                />
+                <span className="font-bold">Chuyển khoản ngân hàng</span>
+              </div>
+
+              {paymentMethod === "bank" && (
+                <div className="mt-4 p-4 bg-gray-50 rounded-md text-center">
+                  <p className="font-bold">Quét mã QR để thanh toán</p>
+                  <img
+                    src={`https://img.vietqr.io/image/970432-000123456789-print.png?amount=${totalPrice}`}
+                    alt="Mã QR Chuyển khoản"
+                    className="w-48 h-48 mx-auto my-2"
+                  />
+                  <p className="text-sm">
+                    Nội dung: THANH TOAN DON HANG [Mã đơn hàng]
+                  </p>
+                  <p className="text-sm font-bold">
+                    STK: 000123456789 - NGUYEN VAN A
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Lựa chọn 2: COD */}
+            <div
+              onClick={() => setPaymentMethod("cod")}
+              className={`border p-4 rounded-md cursor-pointer ${
+                paymentMethod === "cod" ? "border-primary" : ""
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <input
+                  type="radio"
+                  name="paymentMethod"
+                  value="cod"
+                  checked={paymentMethod === "cod"}
+                  onChange={() => setPaymentMethod("cod")}
+                  className="w-5 h-5"
+                />
+                <img
+                  src="https://theme.hstatic.net/1000061481/1001035882/14/payment_method_cod_logo.png?v=2391"
+                  alt="COD"
+                  className="h-8"
+                />
+                <span className="font-bold">Thanh Toán Tại Nhà (COD)</span>
+              </div>
+              {paymentMethod === "cod" && (
+                <p className="text-sm text-gray-600 mt-2 pl-8">
+                  Bạn sẽ thanh toán bằng tiền mặt khi nhận hàng.
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Nút Hoàn tất */}
+          <div className="flex justify-between items-center mt-4">
+            <Link
+              to="/gio-hang"
+              className="text-sm text-primary hover:underline"
+            >
+              Giỏ hàng
+            </Link>
+            <button
+              type="submit"
+              className="bg-primary text-white text-lg font-bold uppercase py-4 px-6 rounded-md transition-colors hover:bg-primary-dark"
+            >
+              Hoàn tất đơn hàng
+            </button>
+          </div>
+        </form>
+
+        {/* === CỘT PHẢI (TÓM TẮT ĐƠN HÀNG) === */}
+        <div className="md:col-span-2 bg-white p-6 rounded-lg shadow-sm h-fit">
+          <h2 className="text-xl font-bold mb-4 border-b pb-4">
+            Đơn hàng ({cartCount} sản phẩm)
+          </h2>
+
+          {/* Danh sách sản phẩm tóm tắt */}
+          <div className="flex flex-col gap-2 max-h-[300px] overflow-y-auto">
+            {cartItems.map((item) => (
+              <OrderSummaryItem key={item.id} item={item} />
+            ))}
+          </div>
+
+          {/* Mã giảm giá */}
+          <div className="flex gap-2 mt-4 py-4 border-t border-b">
+            <input
+              type="text"
+              placeholder="Mã giảm giá"
+              className="flex-grow p-3 border rounded-md"
+            />
+            <button className="bg-gray-300 text-gray-700 font-bold px-4 rounded-md">
+              Sử dụng
+            </button>
+          </div>
+
+          {/* Tổng tiền */}
+          <div className="py-4 border-b">
+            <div className="flex justify-between text-gray-700">
+              <span>Tạm tính:</span>
+              <span>{totalPrice.toLocaleString("vi-VN")} ₫</span>
+            </div>
+            <div className="flex justify-between text-gray-700">
+              <span>Phí vận chuyển:</span>
+              <span>—</span>
+            </div>
+          </div>
+          <div className="flex justify-between font-bold text-xl pt-4 mt-4">
+            <span>Tổng cộng:</span>
+            <span className="text-2xl">
+              {totalPrice.toLocaleString("vi-VN")} ₫
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
