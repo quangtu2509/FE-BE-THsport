@@ -1,8 +1,8 @@
-// Frontend/src/pages/AdminProductsPage.jsx (ĐÃ SỬA VÀ BỔ SUNG CÁC TRƯỜNG ẢNH, SIZES)
+// Frontend/src/pages/admin/AdminProductsPage.jsx
 import React, { useState, useEffect, useCallback } from "react";
-import { fetchApi } from "../utils/api";
+import { fetchApi } from "../../utils/api";
 import { toast } from "react-toastify";
-import Pagination from "../components/Pagination";
+import Pagination from "../../components/Pagination";
 
 const PRODUCTS_PER_PAGE = 12;
 
@@ -321,7 +321,12 @@ export default function AdminProductsPage() {
       <div className="text-center py-10">Đang tải danh sách sản phẩm...</div>
     );
 
-  const formatCurrency = (amount) => amount.toLocaleString("vi-VN") + " ₫";
+  const formatCurrency = (amount) => {
+    if (amount === undefined || amount === null || isNaN(amount)) {
+      return "0 ₫";
+    }
+    return Number(amount).toLocaleString("vi-VN") + " ₫";
+  };
 
   return (
     <div>

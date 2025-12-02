@@ -100,11 +100,14 @@ export default function HomePage() {
       const mappedBrands = fetchedBrands.map((b) => ({
         // Tên thương hiệu cho alt tag
         alt: b.name,
-        // Link URL dựa trên slug của thương hiệu
-        linkUrl: `/danh-muc/${b.slug}`,
+        // Link URL dựa trên slug của thương hiệu - đến trang sản phẩm lọc theo brand
+        linkUrl: `/san-pham?brand=${b.slug}`,
         // Dùng ảnh tĩnh được ánh xạ theo tên
         imageUrl:
           BRAND_IMAGE_MAPPING[b.name] || "https://via.placeholder.com/300",
+        // Lưu thêm brand ID để có thể dùng sau này
+        brandId: b._id,
+        brandSlug: b.slug,
       }));
 
       setDynamicBrands(mappedBrands);

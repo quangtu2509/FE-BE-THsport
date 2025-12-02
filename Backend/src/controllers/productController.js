@@ -62,8 +62,31 @@ exports.getProducts = async (req, res) => {
       filter.category = category;
     }
     
+    // Support brand filter by ID or slug
     if (brand) {
-      filter.brand = brand;
+      const mongoose = require('mongoose');
+      // Check if brand is ObjectId or slug
+      if (mongoose.Types.ObjectId.isValid(brand)) {
+        filter.brand = brand;
+      } else {
+        // Lookup brand by slug
+        const Brand = require('../models/Brand');
+        const brandDoc = await Brand.findOne({ slug: brand });
+        if (brandDoc) {
+          filter.brand = brandDoc._id;
+        } else {
+          // If brand not found, return empty result
+          return res.json({ 
+            products: [], 
+            pagination: { 
+              currentPage: Number(page), 
+              totalPages: 0, 
+              total: 0, 
+              limit: Number(limit) 
+            } 
+          });
+        }
+      }
     }
     
     if (minPrice || maxPrice) {

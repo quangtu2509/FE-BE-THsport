@@ -1,6 +1,6 @@
-// Frontend/src/pages/AdminDashboardPage.jsx (Mới - Chỉ phần nội dung)
+// Frontend/src/pages/admin/AdminDashboardPage.jsx
 import React, { useState, useEffect, useCallback } from "react";
-import { fetchApi } from "../utils/api";
+import { fetchApi } from "../../utils/api";
 import { toast } from "react-toastify";
 import { Link } from "react-router-dom"; // THÊM Link
 
@@ -55,7 +55,12 @@ export default function AdminDashboardPage() {
   }
 
   // Format tiền tệ cho dễ đọc
-  const formatCurrency = (amount) => amount.toLocaleString("vi-VN") + " ₫";
+  const formatCurrency = (amount) => {
+    if (amount === undefined || amount === null || isNaN(amount)) {
+      return "0 ₫";
+    }
+    return Number(amount).toLocaleString("vi-VN") + " ₫";
+  };
 
   return (
     <div>
@@ -105,9 +110,9 @@ export default function AdminDashboardPage() {
                 <p className="text-gray-500">{order.user.name}</p>
               </div>
               <div className="text-right">
-                {/* Backend dùng totalAmount */}
+                {/* Backend dùng total */}
                 <p className="font-bold text-lg text-green-700">
-                  {formatCurrency(order.totalAmount)}
+                  {formatCurrency(order.total)}
                 </p>
                 <span
                   className={`text-xs font-semibold px-2 py-0.5 rounded ${

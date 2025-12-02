@@ -17,7 +17,7 @@ exports.getStats = async (req, res) => {
     // Total revenue (from completed orders)
     const revenueResult = await Order.aggregate([
       { $match: { status: 'completed' } },
-      { $group: { _id: null, total: { $sum: '$totalAmount' } } }
+      { $group: { _id: null, total: { $sum: '$total' } } }
     ]);
     const totalRevenue = revenueResult.length > 0 ? revenueResult[0].total : 0;
 
@@ -29,7 +29,7 @@ exports.getStats = async (req, res) => {
       .sort('-createdAt')
       .limit(5)
       .populate('user', 'name email')
-      .select('_id user totalAmount status createdAt');
+      .select('_id user total status createdAt');
 
     res.json({
       totalProducts,
@@ -57,8 +57,7 @@ exports.getAllOrders = async (req, res) => {
       .sort('-createdAt')
       .skip(skip)
       .limit(Number(limit))
-      .populate('user', 'name email phone')
-      .populate('items.product', 'name price images');
+      .populate('user', 'name email phone');
 
     const total = await Order.countDocuments(filter);
 

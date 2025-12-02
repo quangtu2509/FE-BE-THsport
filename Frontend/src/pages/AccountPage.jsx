@@ -186,7 +186,7 @@ function OrdersTab({ currentUser }) {
               </span>
             </div>
             <p>
-              <strong>Tổng tiền:</strong> {order.total.toLocaleString("vi-VN")}{" "}
+              <strong>Tổng tiền:</strong> {order.total ? order.total.toLocaleString("vi-VN") : "0"}{" "}
               ₫
             </p>
             <p>

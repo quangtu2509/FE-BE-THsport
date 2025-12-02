@@ -1,8 +1,8 @@
-// Frontend/src/pages/AdminUsersPage.jsx
+// Frontend/src/pages/admin/AdminUsersPage.jsx
 import React, { useState, useEffect, useCallback } from "react";
-import { fetchApi } from "../utils/api";
+import { fetchApi } from "../../utils/api";
 import { toast } from "react-toastify";
-import Pagination from "../components/Pagination";
+import Pagination from "../../components/Pagination";
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState([]);

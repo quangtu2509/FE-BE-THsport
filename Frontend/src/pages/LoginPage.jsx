@@ -18,9 +18,15 @@ export default function LoginPage() {
 
     try {
       // Gọi hàm login với state email và password
-      await login(email, password);
+      const user = await login(email, password);
       toast.success("Đăng nhập thành công!");
-      navigate("/");
+      
+      // Kiểm tra role của user và chuyển hướng phù hợp
+      if (user && user.role === "admin") {
+        navigate("/admin");
+      } else {
+        navigate("/");
+      }
     } catch (error) {
       // Bắt lỗi từ AuthContext và hiển thị
       toast.error(error.message || "Sai email hoặc mật khẩu!");

@@ -3,6 +3,7 @@ import React from "react";
 import { NavLink } from "react-router-dom";
 
 const links = [
+  { to: "/", icon: "fas fa-home", name: "Về Trang Chủ", isExternal: true },
   { to: "/admin", icon: "fas fa-chart-line", name: "Tổng quan" },
   { to: "/admin/orders", icon: "fas fa-clipboard-list", name: "Đơn hàng" },
   { to: "/admin/products", icon: "fas fa-shoe-prints", name: "Sản phẩm" },
@@ -27,9 +28,11 @@ export default function AdminSidebar() {
             <NavLink
               key={link.to}
               to={link.to}
-              end={link.to === "/admin"}
+              end={link.to === "/admin" || link.to === "/"}
               className={({ isActive }) =>
-                `${baseClass} ${isActive ? activeClass : inactiveClass}`
+                `${baseClass} ${
+                  !link.isExternal && isActive ? activeClass : inactiveClass
+                }`
               }
             >
               <i className={`${link.icon} w-5 text-center mr-3`} />

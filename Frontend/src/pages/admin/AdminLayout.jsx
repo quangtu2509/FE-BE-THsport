@@ -1,7 +1,7 @@
-// Frontend/src/pages/AdminLayout.jsx (Mới - Tái cấu trúc)
+// Frontend/src/pages/admin/AdminLayout.jsx
 import React from "react";
 import { Outlet, useLocation } from "react-router-dom";
-import AdminSidebar from "../components/AdminSidebar";
+import AdminSidebar from "../../components/AdminSidebar";
 
 export default function AdminLayout() {
   const location = useLocation();

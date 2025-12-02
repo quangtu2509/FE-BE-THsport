@@ -30,7 +30,8 @@ export function CartProvider({ children }) {
       // Chuyển đổi định dạng dữ liệu từ Backend sang Frontend
       const formattedItems = (cart?.items || []).map((item) => ({
         id: item._id, // ID của Cart Item (quan trọng để PUT/DELETE)
-        originalProductId: item.product._id, // ID của Product (quan trọng cho link chi tiết)
+        originalProductId: item.product._id, // ID của Product
+        productSlug: item.product.slug, // Slug của Product (cho link chi tiết)
         name:
           item.product.name +
           (item.selectedSize ? ` (Size: ${item.selectedSize})` : ""),

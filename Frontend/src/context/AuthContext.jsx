@@ -34,7 +34,7 @@ export function AuthProvider({ children }) {
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
       setCurrentUser(data.user);
-      return true;
+      return data.user; // Trả về user để LoginPage có thể kiểm tra role
     } catch (error) {
       // Ném lỗi để component LoginPage có thể bắt và hiển thị toast
       throw new Error(error.message || "Đăng nhập thất bại.");

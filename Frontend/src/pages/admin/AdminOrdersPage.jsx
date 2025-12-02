@@ -1,8 +1,8 @@
-// Frontend/src/pages/AdminOrdersPage.jsx
+// Frontend/src/pages/admin/AdminOrdersPage.jsx
 import React, { useState, useEffect, useCallback } from "react";
-import { fetchApi } from "../utils/api";
+import { fetchApi } from "../../utils/api";
 import { toast } from "react-toastify";
-import Pagination from "../components/Pagination";
+import Pagination from "../../components/Pagination";
 
 const STATUSES = [
   "pending",
@@ -77,7 +77,12 @@ export default function AdminOrdersPage() {
   if (loading)
     return <div className="text-center py-10">Đang tải đơn hàng...</div>;
 
-  const formatCurrency = (amount) => amount.toLocaleString("vi-VN") + " ₫";
+  const formatCurrency = (amount) => {
+    if (amount === undefined || amount === null || isNaN(amount)) {
+      return "0 ₫";
+    }
+    return Number(amount).toLocaleString("vi-VN") + " ₫";
+  };
 
   return (
     <div>
@@ -124,7 +129,7 @@ export default function AdminOrdersPage() {
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-green-600">
-                  {formatCurrency(order.totalAmount)}
+                  {formatCurrency(order.total)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {new Date(order.createdAt).toLocaleDateString("vi-VN")}

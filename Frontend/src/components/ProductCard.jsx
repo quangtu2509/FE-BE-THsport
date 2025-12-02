@@ -6,9 +6,8 @@ import { useCart } from "../context/CartContext";
 export default function ProductCard({ product }) {
   const { addToCart } = useCart();
 
-  // Tạo một link "giả" cho sản phẩm
-  // Sau này nó sẽ là /san-pham/ten-san-pham-slug
-  const productUrl = `/san-pham/${product.id}`;
+  // Tạo một link sử dụng slug thay vì ID
+  const productUrl = `/san-pham/${product.slug || product.id}`;
 
   return (
     // Dịch CSS: .product-card
@@ -33,7 +32,7 @@ export default function ProductCard({ product }) {
 
         {/* Dịch CSS: .product-price */}
         <p className="text-base font-bold text-red-600 mb-3">
-          {product.price.toLocaleString("vi-VN")} ₫
+          {product.price ? product.price.toLocaleString("vi-VN") : "0"} ₫
         </p>
 
         {/* Nút thêm vào giỏ */}

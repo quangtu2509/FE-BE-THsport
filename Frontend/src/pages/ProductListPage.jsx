@@ -1,6 +1,6 @@
 // src/pages/ProductListPage.jsx (Đã sửa đổi)
 import React, { useState, useMemo, useEffect, useCallback } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, useSearchParams, Link } from "react-router-dom";
 // import { allProductsData } from "../data/products.js"; // ĐÃ BỎ: Không dùng mock data
 import ProductSidebar from "../components/ProductSidebar.jsx";
 import ProductGrid from "../components/ProductGrid.jsx";
@@ -47,6 +47,9 @@ function getPriceQuery(activePriceFilters) {
 
 export default function ProductListPage() {
   const { categoryId } = useParams();
+  const [searchParams] = useSearchParams();
+  const brandFromUrl = searchParams.get("brand"); // Lấy brand từ query params
+  
   const [sortOrder, setSortOrder] = useState("Sản phẩm nổi bật");
 
   const [activeFilters, setActiveFilters] = useState({
@@ -95,12 +98,18 @@ export default function ProductListPage() {
     // Ánh xạ filter giá sang minPrice, maxPrice
     const { minPrice, maxPrice } = getPriceQuery(activeFilters.prices);
 
+    // Xử lý brand: Ưu tiên brand từ URL, sau đó mới đến filter
+    let brandFilter = activeFilters.brands;
+    if (brandFromUrl && !activeFilters.brands.includes(brandFromUrl)) {
+      brandFilter = [brandFromUrl, ...activeFilters.brands];
+    }
+
     // Xây dựng Query Params
     const params = {
       page: currentPage,
       limit: PRODUCTS_PER_PAGE,
       // category: categoryInfo.categoryId, // Đang tạm thời không dùng ID
-      brand: activeFilters.brands, // Backend có thể nhận mảng
+      brand: brandFilter.length > 0 ? brandFilter : undefined, // Backend có thể nhận mảng
       minPrice: minPrice,
       maxPrice: maxPrice,
       sort: SORT_MAPPING[sortOrder] || SORT_MAPPING["Sản phẩm nổi bật"],
@@ -115,6 +124,7 @@ export default function ProductListPage() {
       // Chuyển đổi dữ liệu từ Backend sang Frontend format (cần ít nhất ID, name, price)
       const products = response.products.map((p) => ({
         id: p._id,
+        slug: p.slug,
         name: p.name,
         price: p.price,
         brand: p.brand?.name,
@@ -124,11 +134,18 @@ export default function ProductListPage() {
             : "https://via.placeholder.com/300",
       }));
 
+      // Xác định tên trang hiển thị
+      let pageTitle = categoryInfo.pageTitle;
+      if (brandFromUrl) {
+        // Nếu lọc theo brand, hiển thị tên brand
+        pageTitle = `Sản phẩm ${brandFromUrl.toUpperCase().replace(/-/g, " ")}`;
+      }
+
       setProductsData({
         products: products,
         totalPages: response.pagination.totalPages,
         total: response.pagination.total,
-        categoryName: categoryInfo.pageTitle,
+        categoryName: pageTitle,
         categoryObject: categoryInfo.categoryObject,
       });
     } catch (error) {
@@ -142,7 +159,7 @@ export default function ProductListPage() {
     } finally {
       setLoading(false);
     }
-  }, [categoryId, currentPage, sortOrder, activeFilters, fetchCategoryData]);
+  }, [categoryId, currentPage, sortOrder, activeFilters, fetchCategoryData, brandFromUrl]);
 
   useEffect(() => {
     fetchProducts();

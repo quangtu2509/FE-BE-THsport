@@ -7,7 +7,7 @@ export default function CartItem({ item }) {
   const { updateQuantity, removeFromCart } = useCart();
 
   const originalProductId = item.id.split("_")[0];
-  const productUrl = `/san-pham/${item.originalProductId}`;
+  const productUrl = `/san-pham/${item.productSlug || item.originalProductId}`;
 
   const handleQuantityChange = (e) => {
     const newQuantity = parseInt(e.target.value, 10);
@@ -58,7 +58,7 @@ export default function CartItem({ item }) {
 
       <div className="text-sm">
         <span className="md:hidden font-bold">Đơn giá: </span>
-        {item.price.toLocaleString("vi-VN")} ₫
+        {item.price ? item.price.toLocaleString("vi-VN") : "0"} ₫
       </div>
 
       <div className="flex items-center border rounded-md max-w-[100px]">
@@ -78,7 +78,7 @@ export default function CartItem({ item }) {
 
       <div className="text-right font-bold">
         <span className="md:hidden">Thành tiền: </span>
-        {(item.price * item.quantity).toLocaleString("vi-VN")} ₫
+        {item.price && item.quantity ? (item.price * item.quantity).toLocaleString("vi-VN") : "0"} ₫
       </div>
     </div>
   );

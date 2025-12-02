@@ -11,7 +11,7 @@ import ProductGallery from "../components/ProductGallery.jsx";
 import ProductCard from "../components/ProductCard"; // Dùng cho "Sản phẩm liên quan"
 
 export default function ProductDetailPage() {
-  const { id } = useParams();
+  const { slug } = useParams();
   const { addToCart } = useCart();
 
   // State chính để lưu trữ thông tin sản phẩm từ API
@@ -27,12 +27,13 @@ export default function ProductDetailPage() {
   const fetchProduct = useCallback(async () => {
     setLoading(true);
     try {
-      // Endpoint: /products/:id (ID sản phẩm từ URL)
-      const fetchedProduct = await fetchApi(`/products/${id}`);
+      // Endpoint: /products/slug/:slug (dùng slug thay vì ID)
+      const fetchedProduct = await fetchApi(`/products/slug/${slug}`);
 
       // Chuẩn hóa/Ánh xạ dữ liệu từ Backend về cấu trúc Frontend
       const formattedProduct = {
         id: fetchedProduct._id,
+        slug: fetchedProduct.slug,
         name: fetchedProduct.name,
         price: fetchedProduct.price,
         brand: fetchedProduct.brand?.name || "N/A",
@@ -53,7 +54,7 @@ export default function ProductDetailPage() {
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [slug]);
 
   useEffect(() => {
     fetchProduct();
@@ -97,7 +98,8 @@ export default function ProductDetailPage() {
   // 4. Xử lý Thêm vào giỏ (Đã cập nhật để dùng API thông qua Context)
   const handleAddToCart = async () => {
     // Thêm async
-    if (!selectedSize) {
+    // Chỉ yêu cầu chọn size nếu sản phẩm có sizes
+    if (product.availableSizes && product.availableSizes.length > 0 && !selectedSize) {
       toast.error("Vui lòng chọn size!");
       return;
     }
@@ -107,8 +109,9 @@ export default function ProductDetailPage() {
     const success = await addToCart(product, quantity, selectedSize);
 
     if (success) {
+      const sizeText = selectedSize ? ` (Size: ${selectedSize})` : "";
       toast.success(
-        `Đã thêm ${quantity} x ${product.name} (Size: ${selectedSize}) vào giỏ!`
+        `Đã thêm ${quantity} x ${product.name}${sizeText} vào giỏ!`
       );
     } else {
       // Thất bại thường là do chưa đăng nhập
@@ -156,27 +159,31 @@ export default function ProductDetailPage() {
         <div className="md:col-span-1">
           <h1 className="text-3xl font-bold mb-4">{product.name}</h1>
           <p className="text-3xl font-bold text-red-600 mb-6">
-            {product.price.toLocaleString("vi-VN")} ₫
+            {product.price ? product.price.toLocaleString("vi-VN") : "0"} ₫
           </p>
 
           {/* LỰA CHỌN SIZE */}
           <div className="mb-6">
             <label className="block font-bold mb-2">Kích thước:</label>
-            <div className="flex flex-wrap gap-2">
-              {(product.availableSizes || []).map((size) => (
-                <button
-                  key={size}
-                  onClick={() => setSelectedSize(size)}
-                  className={`border rounded-md w-14 h-10 transition-all ${
-                    selectedSize === size
-                      ? "bg-primary text-white border-primary" // Nổi bật size đã chọn
-                      : "bg-white text-gray-800 border-gray-300"
-                  }`}
-                >
-                  {size}
-                </button>
-              ))}
-            </div>
+            {product.availableSizes && product.availableSizes.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {product.availableSizes.map((size) => (
+                  <button
+                    key={size}
+                    onClick={() => setSelectedSize(size)}
+                    className={`border rounded-md w-14 h-10 transition-all ${
+                      selectedSize === size
+                        ? "bg-primary text-white border-primary" // Nổi bật size đã chọn
+                        : "bg-white text-gray-800 border-gray-300"
+                    }`}
+                  >
+                    {size}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-500 italic">Sản phẩm này không cần chọn size</p>
+            )}
           </div>
 
           {/* LỰA CHỌN SỐ LƯỢNG */}

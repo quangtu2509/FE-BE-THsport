@@ -82,13 +82,8 @@ export default function CheckoutPage() {
         items: orderItems,
         total: totalPrice,
         paymentMethod: paymentMethod,
-        shippingAddress: {
-          fullName: formData.fullName,
-          phone: formData.phone,
-          address: formData.address,
-          // Có thể thêm city, district, v.v. vào formData nếu cần
-        },
-        notes: "Ghi chú của khách hàng (hiện tại không có ô nhập liệu)",
+        shippingAddress: `${formData.fullName}, ${formData.phone}, ${formData.address}`,
+        notes: "Đơn hàng từ website",
       };
 
       // 3. Gọi API tạo đơn hàng

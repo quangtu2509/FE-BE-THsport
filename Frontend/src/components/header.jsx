@@ -87,6 +87,18 @@ export default function Header() {
                 {/* Dropdown ĐÃ ĐĂNG NHẬP */}
                 <div className="user-dropdown hidden group-hover:block absolute top-full right-0 bg-[#222] min-w-[200px] shadow-lg z-[1000] text-left">
                   <ul>
+                    {/* Hiển thị link Admin nếu user có role admin */}
+                    {currentUser.role === "admin" && (
+                      <li>
+                        <Link
+                          to="/admin"
+                          className="block py-3 px-4 text-logo-yellow text-sm border-b border-b-[#444] transition-colors hover:bg-[#555] font-bold"
+                        >
+                          <i className="fas fa-user-shield mr-2"></i>
+                          Quản lý Admin
+                        </Link>
+                      </li>
+                    )}
                     <li>
                       <Link
                         to="/tai-khoan"

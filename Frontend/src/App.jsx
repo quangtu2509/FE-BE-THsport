@@ -17,21 +17,22 @@ import AccountPage from "./pages/AccountPage";
 import SearchPage from "./pages/SearchPage";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import RepairService from "./pages/RepairService";
-import SizeGuidePage from "./pages/SizeGuidePage";
-import ShippingPolicyPage from "./pages/ShippingPolicyPage";
-import InspectionPolicyPage from "./pages/InspectionPolicyPage";
-import ReturnPolicyPage from "./pages/ReturnPolicyPage";
-import WarrantyPolicyPage from "./pages/WarrantyPolicyPage";
-import AdminLayout from "./pages/AdminLayout";
+import RepairService from "./pages/policies/RepairService";
+import SizeGuidePage from "./pages/policies/SizeGuidePage";
+import ShippingPolicyPage from "./pages/policies/ShippingPolicyPage";
+import InspectionPolicyPage from "./pages/policies/InspectionPolicyPage";
+import ReturnPolicyPage from "./pages/policies/ReturnPolicyPage";
+import WarrantyPolicyPage from "./pages/policies/WarrantyPolicyPage";
+import AdminLayout from "./pages/admin/AdminLayout";
 import AdminRoute from "./components/AdminRoute";
-import AdminOrdersPage from "./pages/AdminOrdersPage";
-import AdminUsersPage from "./pages/AdminUsersPage";
-import AdminDashboardPage from "./pages/AdminDashboardPage";
-import AdminCategoriesBrandsPage from "./pages/AdminCategoriesBrandsPage";
-import AdminProductsPage from "./pages/AdminProductsPage";
-import AdminPromotionsPage from "./pages/AdminPromotionsPage";
-import AdminNewsPage from "./pages/AdminNewsPage";
+import AdminOrdersPage from "./pages/admin/AdminOrdersPage";
+import AdminUsersPage from "./pages/admin/AdminUsersPage";
+import AdminDashboardPage from "./pages/admin/AdminDashboardPage";
+import AdminCategoriesBrandsPage from "./pages/admin/AdminCategoriesBrandsPage";
+import AdminProductsPage from "./pages/admin/AdminProductsPage";
+import AdminPromotionsPage from "./pages/admin/AdminPromotionsPage";
+import AdminNewsPage from "./pages/admin/AdminNewsPage";
+import AdminFloatingButton from "./components/AdminFloatingButton";
 
 function App() {
   return (
@@ -55,8 +56,9 @@ function App() {
           <Route path="/" element={<HomePage />} />
 
           <Route path="/danh-muc/:categoryId" element={<ProductListPage />} />
+          <Route path="/san-pham" element={<ProductListPage />} />
 
-          <Route path="/san-pham/:id" element={<ProductDetailPage />} />
+          <Route path="/san-pham/:slug" element={<ProductDetailPage />} />
           <Route path="/gio-hang" element={<CartPage />} />
           <Route path="/thanh-toan" element={<CheckoutPage />} />
 
@@ -109,6 +111,7 @@ function App() {
       </main>
       <Footer />
       <SocialIcons />
+      <AdminFloatingButton />
     </>
   );
 }

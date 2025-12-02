@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { fetchApi } from "../utils/api";
+import { fetchApi } from "../../utils/api";
 import { toast } from "react-toastify";
-import Pagination from "../components/Pagination";
+import Pagination from "../../components/Pagination";
 
 const ITEMS_PER_PAGE = 8;
 

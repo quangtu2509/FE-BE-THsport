@@ -15,7 +15,7 @@ const orderSchema = new mongoose.Schema({
   paymentMethod: { type: String, default: 'cod' }, // cod: cash on delivery
   shippingAddress: String,
   notes: String,
-  status: { type: String, enum: ['pending', 'confirmed', 'shipping', 'completed', 'cancelled'], default: 'pending' }
-});
+  status: { type: String, enum: ['pending', 'confirmed', 'delivering', 'completed', 'cancelled'], default: 'pending' }
+}, { timestamps: true });
 
 module.exports = mongoose.model('Order', orderSchema);
