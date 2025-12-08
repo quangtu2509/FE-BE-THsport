@@ -36,8 +36,8 @@ export default function ProductGrid({ products, sortOrder, setSortOrder }) {
         </select>
       </div>
 
-      {/* 2. Lưới sản phẩm */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* 2. Lưới sản phẩm - Grid 4 cột thông thoáng hơn */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
         {products.map((product) => (
           <ProductCard key={product.id} product={product} />
         ))}

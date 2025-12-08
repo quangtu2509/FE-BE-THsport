@@ -1,7 +1,0 @@
-# Ignore Excel files
-*.xlsx
-*.xls
-
-# Ignore backup files
-*.bak
-*.backup

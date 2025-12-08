@@ -1,5 +1,5 @@
 // Frontend/src/utils/api.js
-export const API_BASE_URL = "http://localhost:5000/api";
+export const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 /**
  * Hàm trợ giúp để gọi API và xử lý lỗi/token
@@ -10,6 +10,10 @@ export async function fetchApi(endpoint, options = {}) {
   const token = localStorage.getItem("token");
   const headers = {
     "Content-Type": "application/json",
+    // Thêm header để vô hiệu hóa cache
+    "Cache-Control": "no-cache, no-store, must-revalidate",
+    "Pragma": "no-cache",
+    "Expires": "0",
     ...options.headers,
   };
 
@@ -18,9 +22,16 @@ export async function fetchApi(endpoint, options = {}) {
     headers["Authorization"] = `Bearer ${token}`;
   }
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+  // Thêm timestamp để force refresh cache
+  const separator = endpoint.includes('?') ? '&' : '?';
+  const cacheBuster = `${separator}_t=${Date.now()}`;
+  const finalEndpoint = `${endpoint}${cacheBuster}`;
+
+  const response = await fetch(`${API_BASE_URL}${finalEndpoint}`, {
     ...options,
     headers,
+    credentials: 'include', // Gửi cookies (HTTP-only cookies từ backend)
+    cache: 'no-store', // Không cache ở browser level
   });
 
   if (!response.ok && response.status !== 304) {
@@ -28,8 +39,11 @@ export async function fetchApi(endpoint, options = {}) {
     const errorData = await response
       .json()
       .catch(() => ({ message: "Lỗi không xác định" }));
-    const error = new Error(errorData.error || errorData.message || "Lỗi mạng");
+    
+    // Backend trả về format: { success: false, statusCode, message, errors }
+    const error = new Error(errorData.message || errorData.error || "Lỗi mạng");
     error.status = response.status;
+    error.errors = errorData.errors; // Validation errors từ Joi
     throw error;
   }
 
@@ -42,7 +56,24 @@ export async function fetchApi(endpoint, options = {}) {
     return null; // Trả về null để tránh lỗi parse JSON trên body rỗng
   }
 
-  return response.json();
+  const data = await response.json();
+  
+  // Backend có 2 format:
+  // 1. New format (với ResponseHelper): { success: true, statusCode: 200, message: "...", data: {...} }
+  // 2. Old format (trực tiếp): {...} hoặc [{...}]
+  // Chuẩn hóa về format mới để frontend dễ xử lý
+  if (data && typeof data === 'object' && 'success' in data && 'data' in data) {
+    // Đã là format mới, trả về nguyên bản
+    return data;
+  } else {
+    // Format cũ, wrap lại thành format mới
+    return {
+      success: true,
+      statusCode: response.status,
+      message: 'Success',
+      data: data
+    };
+  }
 }
 
 export function buildQueryParams(params) {

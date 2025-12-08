@@ -8,7 +8,7 @@ export default function Footer() {
           <div className="footer-column flex-1">
             <h4 className="text-lg font-bold mb-4">THSPORT</h4>
             <p className="text-sm text-gray-400">
-              Hệ thống bán giày bóng đá chính hãng với hơn 12 năm kinh nghiệm,
+              Hệ thống bán giày bóng đá chính hãng với nhiều năm kinh nghiệm,
               mang đến sản phẩm chất lượng và dịch vụ tốt nhất.
             </p>
           </div>

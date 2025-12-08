@@ -94,7 +94,8 @@ export default function HomePage() {
   const fetchBrands = useCallback(async () => {
     try {
       // Endpoint: GET /brands
-      const fetchedBrands = await fetchApi("/brands");
+      const response = await fetchApi("/brands");
+      const fetchedBrands = response?.data || response || [];
 
       // Ánh xạ dữ liệu từ API về cấu trúc cần cho BrandCard
       const mappedBrands = fetchedBrands.map((b) => ({
@@ -113,6 +114,7 @@ export default function HomePage() {
       setDynamicBrands(mappedBrands);
     } catch (error) {
       console.error("Lỗi khi tải thương hiệu:", error);
+      setDynamicBrands([]);
     } finally {
       setLoading(false);
     }

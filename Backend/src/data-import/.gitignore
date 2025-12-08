@@ -1,0 +1,8 @@
+# Ignore Excel files
+*.xlsx
+*.xls
+*.csv
+
+# Ignore backup files
+*.bak
+*.backup

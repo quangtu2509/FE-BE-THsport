@@ -25,7 +25,8 @@ export function CartProvider({ children }) {
     setIsLoading(true);
     try {
       // Endpoint: GET /cart
-      const cart = await fetchApi("/cart");
+      const response = await fetchApi("/cart");
+      const cart = response.data || response; // Xử lý cả 2 format
 
       // Chuyển đổi định dạng dữ liệu từ Backend sang Frontend
       const formattedItems = (cart?.items || []).map((item) => ({
@@ -54,8 +55,13 @@ export function CartProvider({ children }) {
 
   // Chạy fetchCart khi component mount hoặc khi trạng thái đăng nhập thay đổi
   useEffect(() => {
-    fetchCart();
-  }, [fetchCart]);
+    if (currentUser) {
+      fetchCart();
+    } else {
+      // QUAN TRỌNG: Xóa giỏ hàng khi logout
+      setCartItems([]);
+    }
+  }, [currentUser, fetchCart]);
 
   // Hàm thêm sản phẩm vào giỏ
   const addToCart = async (product, quantityToAdd = 1, selectedSize = null) => {
@@ -123,6 +129,11 @@ export function CartProvider({ children }) {
     }
   };
 
+  // Hàm reset giỏ hàng (khi logout)
+  const resetCart = () => {
+    setCartItems([]);
+  };
+
   // Tính toán tổng số lượng và tổng tiền (tính toán local)
   const cartCount = cartItems.reduce((total, item) => total + item.quantity, 0);
 
@@ -139,6 +150,7 @@ export function CartProvider({ children }) {
     updateQuantity,
     removeFromCart,
     clearCart,
+    resetCart,
     isLoading,
   };
 

@@ -138,12 +138,17 @@ export default function AdminCategoriesBrandsPage() {
     // Endpoint dùng chuỗi số nhiều (categories/brands)
     const endpoint = type === "category" ? "/categories" : "/brands";
     try {
-      const response = await fetchApi(`${endpoint}?${query}`);
+      const response = await fetchApi(endpoint);
 
-      if (response === null) return;
+      if (response === null) {
+        setLoading(false);
+        return;
+      }
 
-      const processedItems = Array.isArray(response)
-        ? response.map((item) => ({
+      // Backend có thể trả về {data: [...]} hoặc [...]
+      const rawData = response.data || response;
+      const processedItems = Array.isArray(rawData)
+        ? rawData.map((item) => ({
             ...item,
             id: item._id,
           }))
@@ -169,7 +174,16 @@ export default function AdminCategoriesBrandsPage() {
         });
       }
     } catch (error) {
-      toast.error(`Lỗi tải danh sách.`);
+      console.error("Lỗi khi fetch data:", error);
+      toast.error(`Lỗi tải danh sách: ${error.message || 'Unknown error'}`);
+      // Set empty arrays để tránh lỗi
+      if (type === "category") {
+        setCategories([]);
+        setCategoriesPagination({ currentPage: 1, totalPages: 1, total: 0 });
+      } else {
+        setBrands([]);
+        setBrandsPagination({ currentPage: 1, totalPages: 1, total: 0 });
+      }
     } finally {
       setLoading(false);
     }

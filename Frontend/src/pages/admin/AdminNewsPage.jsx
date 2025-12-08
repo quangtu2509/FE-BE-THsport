@@ -26,10 +26,13 @@ export default function AdminNewsPage() {
   const loadNews = async () => {
     try {
       setLoading(true);
-      const data = await fetchApi("/news");
-      setNewsList(data);
+      const response = await fetchApi("/news");
+      // Backend có thể trả về {data: [...]} hoặc [...] trực tiếp
+      const newsData = response.data || response;
+      setNewsList(Array.isArray(newsData) ? newsData : []);
     } catch (error) {
       toast.error("Không thể tải danh sách tin tức");
+      setNewsList([]);
     } finally {
       setLoading(false);
     }
@@ -150,14 +153,15 @@ export default function AdminNewsPage() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {newsList.map((news) => (
-                <tr key={news._id}>
-                  <td className="px-6 py-4">
-                    <div className="text-sm font-medium text-gray-900">
-                      {news.title}
-                    </div>
-                    <div className="text-sm text-gray-500">{news.slug}</div>
-                  </td>
+              {newsList && newsList.length > 0 ? (
+                newsList.map((news) => (
+                  <tr key={news._id}>
+                    <td className="px-6 py-4">
+                      <div className="text-sm font-medium text-gray-900">
+                        {news.title}
+                      </div>
+                      <div className="text-sm text-gray-500">{news.slug}</div>
+                    </td>
                   <td className="px-6 py-4">
                     <div className="flex flex-wrap gap-1">
                       {news.tags?.map((tag, index) => (
@@ -199,18 +203,20 @@ export default function AdminNewsPage() {
                     </button>
                   </td>
                 </tr>
-              ))}
+              ))
+              ) : (
+                <tr>
+                  <td colSpan="5" className="text-center py-8 text-gray-500">
+                    Chưa có tin tức nào
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
-          {newsList.length === 0 && (
-            <p className="text-center py-8 text-gray-500">
-              Chưa có tin tức nào
-            </p>
-          )}
         </div>
       )}
 
-      {/* Modal */}
+      
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">

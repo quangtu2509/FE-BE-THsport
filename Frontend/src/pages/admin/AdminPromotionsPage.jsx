@@ -26,10 +26,13 @@ export default function AdminPromotionsPage() {
   const loadPromotions = async () => {
     try {
       setLoading(true);
-      const data = await fetchApi("/promotions");
-      setPromotions(data);
+      const response = await fetchApi("/promotions");
+      // Backend có thể trả về {data: [...]} hoặc [...] trực tiếp
+      const promotionsData = response.data || response;
+      setPromotions(Array.isArray(promotionsData) ? promotionsData : []);
     } catch (error) {
       toast.error("Không thể tải danh sách khuyến mãi");
+      setPromotions([]);
     } finally {
       setLoading(false);
     }
@@ -166,13 +169,14 @@ export default function AdminPromotionsPage() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {promotions.map((promo) => (
-                <tr key={promo._id}>
-                  <td className="px-6 py-4">
-                    <div className="text-sm font-bold text-gray-900">
-                      {promo.code}
-                    </div>
-                  </td>
+              {promotions && promotions.length > 0 ? (
+                promotions.map((promo) => (
+                  <tr key={promo._id}>
+                    <td className="px-6 py-4">
+                      <div className="text-sm font-bold text-gray-900">
+                        {promo.code}
+                      </div>
+                    </td>
                   <td className="px-6 py-4">
                     <div className="text-sm text-gray-900">
                       {promo.description || "-"}
@@ -222,18 +226,20 @@ export default function AdminPromotionsPage() {
                     </button>
                   </td>
                 </tr>
-              ))}
+              ))
+              ) : (
+                <tr>
+                  <td colSpan="7" className="text-center py-8 text-gray-500">
+                    Chưa có khuyến mãi nào
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
-          {promotions.length === 0 && (
-            <p className="text-center py-8 text-gray-500">
-              Chưa có khuyến mãi nào
-            </p>
-          )}
         </div>
       )}
 
-      {/* Modal */}
+      
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">

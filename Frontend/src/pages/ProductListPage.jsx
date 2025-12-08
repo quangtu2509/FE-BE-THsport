@@ -6,6 +6,8 @@ import ProductSidebar from "../components/ProductSidebar.jsx";
 import ProductGrid from "../components/ProductGrid.jsx";
 import Pagination from "../components/Pagination.jsx";
 import { fetchApi, buildQueryParams } from "../utils/api"; // THÊM buildQueryParams
+import { ProductGridSkeleton } from "../components/LoadingSkeleton";
+import ErrorMessage, { EmptyState } from "../components/ErrorMessage";
 
 // Cài đặt số lượng sản phẩm mỗi trang
 const PRODUCTS_PER_PAGE = 12; // Đã đổi từ 18 sang 12 để phù hợp với mặc định Backend
@@ -74,19 +76,17 @@ export default function ProductListPage() {
         return { categoryId: null, pageTitle: "Tất Cả Sản Phẩm" };
       }
 
-      // Tạm thời bỏ qua lookup slug -> ID vì Backend không có endpoint này.
-      // Đây là điểm cần cải thiện trong Backend. Hiện tại, ta sẽ giả lập
-      // rằng categoryId là slug và cố gắng lấy tên hiển thị.
-      // Trong một ứng dụng thật, nếu categoryId là slug, ta sẽ gọi:
-      // await fetchApi(`/categories/slug/${categoryId}`);
-
-      // Dựa trên mock data cũ, ta sẽ cố gắng hiển thị tên hợp lý
+      // Gọi API để lấy category by slug
+      const response = await fetchApi(`/categories/slug/${categoryId}`);
+      const category = response.data || response; // Backend trả về {success, data: category}
       return {
-        categoryId: null, // Không có ID để truyền cho API
-        pageTitle: categoryId.toUpperCase().replace(/-/g, " "),
+        categoryId: category._id,
+        pageTitle: category.name || "Danh Mục Sản Phẩm",
+        categoryObject: category
       };
     } catch (e) {
-      return { categoryId: null, pageTitle: "Không tìm thấy danh mục" };
+      console.warn(`Không tìm thấy category: ${categoryId}`, e);
+      return { categoryId: null, pageTitle: categoryId.toUpperCase().replace(/-/g, " ") };
     }
   }, [categoryId]);
 
@@ -108,10 +108,10 @@ export default function ProductListPage() {
     const params = {
       page: currentPage,
       limit: PRODUCTS_PER_PAGE,
-      // category: categoryInfo.categoryId, // Đang tạm thời không dùng ID
+      category: categoryInfo.categoryId || undefined, // Truyền category ID nếu có
       brand: brandFilter.length > 0 ? brandFilter : undefined, // Backend có thể nhận mảng
-      minPrice: minPrice,
-      maxPrice: maxPrice,
+      minPrice: minPrice || undefined,
+      maxPrice: maxPrice || undefined,
       sort: SORT_MAPPING[sortOrder] || SORT_MAPPING["Sản phẩm nổi bật"],
       // search: // Thêm search query nếu có
     };
@@ -121,8 +121,20 @@ export default function ProductListPage() {
     try {
       const response = await fetchApi(`/products?${queryString}`);
 
-      // Chuyển đổi dữ liệu từ Backend sang Frontend format (cần ít nhất ID, name, price)
-      const products = response.products.map((p) => ({
+      console.log("=== DEBUG ProductListPage ===");
+      console.log("Response:", response);
+      console.log("Response.data:", response.data);
+      console.log("Response.pagination:", response.pagination);
+
+      // Backend trả về: {success, statusCode, message, data: [...], pagination: {...}}
+      const productsData = response.data || [];
+      const paginationData = response.pagination || { totalPages: 1, total: 0 };
+
+      console.log("Products Data:", productsData);
+      console.log("Pagination Data:", paginationData);
+
+      // Chuyển đổi dữ liệu từ Backend sang Frontend format
+      const products = productsData.map((p) => ({
         id: p._id,
         slug: p.slug,
         name: p.name,
@@ -134,6 +146,9 @@ export default function ProductListPage() {
             : "https://via.placeholder.com/300",
       }));
 
+      console.log("Mapped Products:", products);
+      console.log("Products Count:", products.length);
+
       // Xác định tên trang hiển thị
       let pageTitle = categoryInfo.pageTitle;
       if (brandFromUrl) {
@@ -143,8 +158,8 @@ export default function ProductListPage() {
 
       setProductsData({
         products: products,
-        totalPages: response.pagination.totalPages,
-        total: response.pagination.total,
+        totalPages: paginationData.totalPages,
+        total: paginationData.total,
         categoryName: pageTitle,
         categoryObject: categoryInfo.categoryObject,
       });
@@ -187,10 +202,25 @@ export default function ProductListPage() {
   // Xử lý khi Product List đang tải
   if (loading) {
     return (
-      <div className="container w-[90%] max-w-[1000px] mx-auto mt-10 py-20 text-center">
-        <h1 className="text-3xl font-bold text-primary">
-          Đang tải danh sách sản phẩm...
+      <div className="container-custom mt-10">
+        <h1 className="text-2xl font-bold mb-6 animate-pulse text-gray-700">
+          {productsData.categoryName || "Đang tải..."}
         </h1>
+        <div className="flex flex-col md:flex-row gap-6">
+          <aside className="w-full md:w-1/4">
+            <div className="bg-white rounded-lg shadow-md p-4 animate-pulse">
+              <div className="h-6 bg-gray-200 rounded mb-4" />
+              <div className="space-y-2">
+                {[1, 2, 3, 4, 5].map(i => (
+                  <div key={i} className="h-4 bg-gray-200 rounded" />
+                ))}
+              </div>
+            </div>
+          </aside>
+          <main className="flex-1">
+            <ProductGridSkeleton count={12} />
+          </main>
+        </div>
       </div>
     );
   }
@@ -212,43 +242,46 @@ export default function ProductListPage() {
 
   // (Phần render đã cập nhật)
   return (
-    <div className="container w-[90%] max-w-[1400px] mx-auto mt-10 py-10">
-      <h1 className="text-3xl font-bold text-center mb-8">
-        {productsData.categoryName} ({productsData.total} sản phẩm)
-      </h1>
+    <div className="bg-gray-50 min-h-screen py-8">
+      <div className="container w-[90%] max-w-[1400px] mx-auto">
+        <h1 className="text-3xl font-bold mb-2 text-gray-800">
+          {productsData.categoryName}
+        </h1>
+        <p className="text-gray-600 mb-8">{productsData.total} sản phẩm</p>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-        {/* Cột Trái (Sidebar) */}
-        <div className="lg:col-span-1">
-          <ProductSidebar
-            activeFilters={activeFilters}
-            onFilterChange={handleFilterChange}
-          />
-        </div>
-
-        {/* Cột Phải (Nội dung chính) */}
-        <div className="lg:col-span-3">
-          <ProductGrid
-            products={productsData.products}
-            sortOrder={sortOrder}
-            setSortOrder={(value) => {
-              setSortOrder(value);
-              setCurrentPage(1); // Reset về trang 1 khi sắp xếp
-            }}
-          />
-
-          {productsData.total > 0 && (
-            <Pagination
-              currentPage={currentPage}
-              totalPages={productsData.totalPages}
-              onPageChange={(page) => setCurrentPage(page)}
+        <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-8">
+          {/* Cột Trái (Sidebar) - Fixed width */}
+          <div className="lg:sticky lg:top-4 lg:self-start">
+            <ProductSidebar
+              activeFilters={activeFilters}
+              onFilterChange={handleFilterChange}
             />
-          )}
-          {productsData.total === 0 && (
-            <p className="text-center text-xl py-10">
-              Không tìm thấy sản phẩm nào phù hợp với bộ lọc.
-            </p>
-          )}
+          </div>
+
+          {/* Cột Phải (Nội dung chính) */}
+          <div>
+            <ProductGrid
+              products={productsData.products}
+              sortOrder={sortOrder}
+              setSortOrder={(value) => {
+                setSortOrder(value);
+                setCurrentPage(1); // Reset về trang 1 khi sắp xếp
+              }}
+            />
+
+            {productsData.total > 0 && (
+              <Pagination
+                currentPage={currentPage}
+                totalPages={productsData.totalPages}
+                onPageChange={(page) => setCurrentPage(page)}
+              />
+            )}
+            {productsData.total === 0 && (
+              <p className="text-center text-xl py-10">
+                Không tìm thấy sản phẩm nào phù hợp với bộ lọc.
+              </p>
+            )}
+          </div>
         </div>
       </div>
     </div>
