@@ -9,7 +9,7 @@ module.exports = {
   },
 
   cors: {
-    origin: (process.env.CORS_ORIGIN || 'http://localhost:5173,http://localhost:5174').split(','),
+    origin: (process.env.CORS_ORIGIN || 'http://localhost:5173,http://localhost:5174,https://fe-thsport.vercel.app').split(','),
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Cache-Control', 'Pragma', 'Expires'],
