@@ -100,40 +100,70 @@ export default function OrderLookupPage() {
 
           {/* Nếu tra cứu thành công */}
           {lookupResult.status === "success" && (
-            <div className="flex flex-col gap-2">
-              <p>
-                <strong>Mã đơn hàng:</strong> {lookupResult.id}
-              </p>
-              <p>
-                <strong>Khách hàng:</strong> {lookupResult.customer}
-              </p>
-              <p>
-                <strong>Ngày đặt:</strong> {lookupResult.date}
-              </p>
-              <p>
-                <strong>Sản phẩm:</strong> {lookupResult.item}
-              </p>
-              <p>
-                {/* THÊM HIỂN THỊ TỔNG TIỀN */}
-                <strong>Tổng tiền:</strong>
-                <span className="font-bold text-red-600 ml-2">
+            <div className="flex flex-col gap-4">
+              {/* Thông tin chung */}
+              <div className="border-b pb-4 space-y-2">
+                <p>
+                  <strong>Mã đơn hàng:</strong> {lookupResult.id}
+                </p>
+                <p>
+                  <strong>Ngày đặt:</strong> {lookupResult.date}
+                </p>
+                <p>
+                  <strong>Khách hàng:</strong> {lookupResult.customer}
+                </p>
+                <p>
+                  <strong>Trạng thái:</strong>
+                  <span
+                    className={`font-bold ml-2 ${getStatusColor(
+                      lookupResult.orderStatus
+                    )}`}
+                  >
+                    {lookupResult.orderStatus.toUpperCase()}
+                  </span>
+                </p>
+              </div>
+
+              {/* Chi tiết sản phẩm */}
+              <h3 className="text-lg font-bold">Sản phẩm đã đặt:</h3>
+              {lookupResult.items.map((item, index) => (
+                <div
+                  key={index}
+                  className="flex items-start justify-between border-b pb-2 last:border-b-0"
+                >
+                  <div className="flex items-center gap-3">
+                    <img
+                      src={
+                        item.imageUrl ||
+                        item.image ||
+                        "https://via.placeholder.com/50"
+                      }
+                      alt={item.name}
+                      className="w-12 h-12 object-cover rounded-md"
+                    />
+                    <div>
+                      <p className="text-sm font-medium">{item.name}</p>
+                      <p className="text-xs text-gray-500">
+                        SL: {item.quantity}
+                      </p>
+                    </div>
+                  </div>
+                  <p className="text-sm font-semibold">
+                    {(item.price * item.quantity).toLocaleString("vi-VN")} ₫
+                  </p>
+                </div>
+              ))}
+
+              {/* Tổng tiền */}
+              <div className="flex justify-between font-bold text-lg border-t pt-4">
+                <span>Tổng cộng:</span>
+                <span className="text-red-600">
                   {lookupResult.total
                     ? lookupResult.total.toLocaleString("vi-VN")
                     : "0"}{" "}
                   ₫
                 </span>
-              </p>
-              <p>
-                <strong>Trạng thái:</strong>
-                {/* SỬ DỤNG HÀM getStatusColor ĐỂ HIỂN THỊ MÀU SẮC TRẠNG THÁI */}
-                <span
-                  className={`font-bold ml-2 ${getStatusColor(
-                    lookupResult.orderStatus
-                  )}`}
-                >
-                  {lookupResult.orderStatus.toUpperCase()}
-                </span>
-              </p>
+              </div>
             </div>
           )}
         </div>
