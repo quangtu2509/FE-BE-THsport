@@ -264,14 +264,18 @@ export default function AdminProductsPage() {
         return;
       }
 
+      // Backend trả về {success, data: [...], pagination: {...}}
+      const productsData = productResponse.data || [];
+      const paginationData = productResponse.pagination || { totalPages: 1, total: 0 };
+
       // Xử lý id cho product list view
-      const processedProducts = productResponse.products.map((p) => ({
+      const processedProducts = productsData.map((p) => ({
         ...p,
         id: p._id, // Đảm bảo ID được sử dụng là _id từ MongoDB
       }));
 
       setProducts(processedProducts);
-      setPagination(productResponse.pagination);
+      setPagination(paginationData);
     } catch (error) {
       toast.error("Không thể tải danh sách sản phẩm.");
     } finally {

@@ -3,27 +3,35 @@ import { useCart } from "../context/CartContext";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { fetchApi } from "../utils/api";
+import SearchAutocomplete from "./SearchAutocomplete";
 
 export default function Header() {
   const { cartCount } = useCart();
   const { currentUser, logout } = useAuth();
-  // 3. (MỚI) Thêm state cho thanh tìm kiếm
-  const [searchQuery, setSearchQuery] = useState("");
-  const navigate = useNavigate(); // 4. (MỚI) Hook để chuyển trang
+  const navigate = useNavigate();
   const [categories, setCategories] = useState([]);
   const [brands, setBrands] = useState([]);
   const [loadingMenu, setLoadingMenu] = useState(true);
+
   const fetchMenuData = useCallback(async () => {
     try {
       // Chờ cả hai lời gọi API hoàn thành
-      const [cats, brs] = await Promise.all([
+      const [catsResponse, brsResponse] = await Promise.all([
         fetchApi("/categories"), // Endpoint lấy danh mục
         fetchApi("/brands"), // Endpoint lấy thương hiệu
       ]);
+      
+      // Xử lý response format (cả mới và cũ)
+      const cats = catsResponse?.data || catsResponse || [];
+      const brs = brsResponse?.data || brsResponse || [];
+      
       setCategories(cats);
       setBrands(brs);
     } catch (error) {
       console.error("Lỗi khi tải dữ liệu menu:", error);
+      // Không crash app nếu menu load lỗi
+      setCategories([]);
+      setBrands([]);
     } finally {
       setLoadingMenu(false);
     }
@@ -33,19 +41,12 @@ export default function Header() {
     fetchMenuData();
   }, [fetchMenuData]);
 
-  const handleSearchSubmit = (e) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      navigate(`/tim-kiem?q=${searchQuery}`);
-      setSearchQuery("");
-    }
-  };
   return (
     <header>
       <div className="bg-[#f8f9fa] py-2 text-xs text-center border-b border-b-[#e7e7e7]">
         {/* Dịch: .container */}
         <div className="w-[90%] max-w-[1400px] mx-auto">
-          HỆ THỐNG BÁN GIÀY CHÍNH HÃNG HƠN 12 NĂM HÌNH THÀNH VÀ PHÁT TRIỂN
+          HỆ THỐNG BÁN GIÀY CHÍNH HÃNG NHIỀU NĂM HÌNH THÀNH VÀ PHÁT TRIỂN
         </div>
       </div>
 
@@ -55,25 +56,8 @@ export default function Header() {
           <Link to="/" className="text-[28px] font-bold uppercase">
             TH<span className="text-logo-yellow">SPORT</span>
           </Link>
-          {/* 6. (CẬP NHẬT) Bọc thanh tìm kiếm bằng <form> */}
-          <form
-            onSubmit={handleSearchSubmit}
-            className="flex-grow mx-10 relative hidden lg:block w-full md:w-auto"
-          >
-            <input
-              type="text"
-              placeholder="Tìm kiếm..."
-              className="w-full p-2.5 rounded border-none text-sm text-black"
-              value={searchQuery} // 7. Kết nối với state
-              onChange={(e) => setSearchQuery(e.target.value)} // 8. Cập nhật state
-            />
-            <button
-              type="submit" // 9. Đổi thành type="submit"
-              className="absolute right-0 top-0 h-full w-10 border-none bg-[#ddd] cursor-pointer rounded-r"
-            >
-              <i className="fa fa-search" />
-            </button>
-          </form>
+          {/* SearchAutocomplete với dropdown gợi ý */}
+          <SearchAutocomplete />
           {/* ===== USER ACTIONS ===== */}
           <div className="flex items-center">
             {/* (MỚI) Hiển thị khác nhau dựa trên trạng thái đăng nhập */}

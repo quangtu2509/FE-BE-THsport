@@ -15,6 +15,7 @@ import LoginPage from "./pages/LoginPage";
 import OrderLookupPage from "./pages/OrderLookupPage";
 import AccountPage from "./pages/AccountPage";
 import SearchPage from "./pages/SearchPage";
+import BrandProductsPage from "./pages/BrandProductsPage";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import RepairService from "./pages/policies/RepairService";
@@ -72,6 +73,7 @@ function App() {
           <Route path="/tra-cuu-don-hang" element={<OrderLookupPage />} />
           <Route path="/tai-khoan" element={<AccountPage />} />
           <Route path="/tim-kiem" element={<SearchPage />} />
+          <Route path="/hang/:brandSlug" element={<BrandProductsPage />} />
 
           <Route path="/dich-vu/sua-chua-giay" element={<RepairService />} />
 

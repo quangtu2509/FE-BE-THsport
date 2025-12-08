@@ -1,6 +1,7 @@
 // src/pages/AccountPage.jsx (Đã sửa hoàn chỉnh)
 import React, { useState, useEffect, useCallback } from "react";
 import { useAuth } from "../context/AuthContext";
+import { useCart } from "../context/CartContext";
 import { useNavigate } from "react-router-dom";
 import { fetchApi } from "../utils/api"; // THÊM: Import fetchApi
 import { toast } from "react-toastify"; // THÊM: Import toast
@@ -140,8 +141,10 @@ function OrdersTab({ currentUser }) {
     switch (status) {
       case "completed":
         return "text-green-600";
-      case "shipping":
+      case "delivering":
         return "text-blue-600";
+      case "confirmed":
+        return "text-indigo-600";
       case "pending":
         return "text-yellow-600";
       case "cancelled":
@@ -213,6 +216,7 @@ function OrdersTab({ currentUser }) {
 // Component chính
 export default function AccountPage() {
   const { currentUser, logout } = useAuth();
+  const { resetCart } = useCart();
   const navigate = useNavigate();
 
   const [activeTab, setActiveTab] = useState("profile");
@@ -226,6 +230,7 @@ export default function AccountPage() {
 
   // Hàm xử lý đăng xuất
   const handleLogout = () => {
+    resetCart();
     logout();
     navigate("/");
   };

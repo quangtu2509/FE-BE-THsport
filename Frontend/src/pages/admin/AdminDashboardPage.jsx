@@ -20,8 +20,15 @@ export default function AdminDashboardPage() {
 
   const fetchStats = useCallback(async () => {
     try {
-      const data = await fetchApi("/admin/stats");
-      setStats(data);
+      const response = await fetchApi("/admin/stats");
+      // Backend trả về trực tiếp object hoặc wrapped trong {success, data}
+      const statsData = response.data || response;
+      
+      // Đảm bảo recentOrders luôn là array
+      setStats({
+        ...statsData,
+        recentOrders: statsData.recentOrders || []
+      });
     } catch (error) {
       console.error("Lỗi khi tải thống kê:", error);
       if (error.status === 403) {
@@ -98,34 +105,38 @@ export default function AdminDashboardPage() {
         <h2 className="text-xl font-bold mb-4">5 Đơn Hàng Gần Đây</h2>
         {/* ... (Logic hiển thị đơn hàng gần đây) */}
         <div className="space-y-3">
-          {stats.recentOrders.map((order) => (
-            <div
-              key={order._id}
-              className="flex justify-between items-center p-3 border-b border-gray-100 last:border-b-0"
-            >
-              <div className="text-sm">
-                <p className="font-bold">
-                  #{order._id.slice(-6).toUpperCase()}
-                </p>
-                <p className="text-gray-500">{order.user.name}</p>
+          {stats.recentOrders && stats.recentOrders.length > 0 ? (
+            stats.recentOrders.map((order) => (
+              <div
+                key={order._id}
+                className="flex justify-between items-center p-3 border-b border-gray-100 last:border-b-0"
+              >
+                <div className="text-sm">
+                  <p className="font-bold">
+                    #{order._id.slice(-6).toUpperCase()}
+                  </p>
+                  <p className="text-gray-500">{order.user?.name || 'N/A'}</p>
+                </div>
+                <div className="text-right">
+                  {/* Backend dùng total */}
+                  <p className="font-bold text-lg text-green-700">
+                    {formatCurrency(order.total)}
+                  </p>
+                  <span
+                    className={`text-xs font-semibold px-2 py-0.5 rounded ${
+                      order.status === "pending"
+                        ? "bg-yellow-100 text-yellow-800"
+                        : "bg-blue-100 text-blue-800"
+                    }`}
+                  >
+                    {order.status.toUpperCase()}
+                  </span>
+                </div>
               </div>
-              <div className="text-right">
-                {/* Backend dùng total */}
-                <p className="font-bold text-lg text-green-700">
-                  {formatCurrency(order.total)}
-                </p>
-                <span
-                  className={`text-xs font-semibold px-2 py-0.5 rounded ${
-                    order.status === "pending"
-                      ? "bg-yellow-100 text-yellow-800"
-                      : "bg-blue-100 text-blue-800"
-                  }`}
-                >
-                  {order.status.toUpperCase()}
-                </span>
-              </div>
-            </div>
-          ))}
+            ))
+          ) : (
+            <p className="text-gray-500 text-center py-4">Chưa có đơn hàng nào</p>
+          )}
         </div>
         <div className="mt-4 text-right">
           <Link

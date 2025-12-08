@@ -28,7 +28,10 @@ export default function ProductDetailPage() {
     setLoading(true);
     try {
       // Endpoint: /products/slug/:slug (dùng slug thay vì ID)
-      const fetchedProduct = await fetchApi(`/products/slug/${slug}`);
+      const response = await fetchApi(`/products/slug/${slug}`);
+      
+      // Lấy data từ response (API trả về format: { success, statusCode, message, data })
+      const fetchedProduct = response.data || response;
 
       // Chuẩn hóa/Ánh xạ dữ liệu từ Backend về cấu trúc Frontend
       const formattedProduct = {

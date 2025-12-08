@@ -5,11 +5,11 @@ import { fetchApi } from "../utils/api"; // THÊM fetchApi
 // Component con nội bộ để tái sử dụng
 function FilterGroup({ title, children }) {
   return (
-    <div className="mb-6">
-      <h3 className="text-sm font-bold uppercase border-b border-gray-300 pb-2 mb-4">
+    <div className="mb-6 bg-white rounded-lg shadow-sm p-4">
+      <h3 className="text-sm font-bold uppercase text-gray-800 border-b-2 border-primary pb-2 mb-4">
         {title}
       </h3>
-      <div className="flex flex-col gap-2">{children}</div>
+      <div className="flex flex-col gap-2.5">{children}</div>
     </div>
   );
 }
@@ -32,7 +32,8 @@ export default function ProductSidebar({ activeFilters, onFilterChange }) {
   const fetchData = useCallback(async () => {
     try {
       // Fetch Categories
-      const fetchedCategories = await fetchApi("/categories");
+      const catsResponse = await fetchApi("/categories");
+      const fetchedCategories = catsResponse?.data || catsResponse || [];
       setCategories(
         fetchedCategories.map((c) => ({
           name: c.name,
@@ -42,7 +43,8 @@ export default function ProductSidebar({ activeFilters, onFilterChange }) {
       );
 
       // Fetch Brands
-      const fetchedBrands = await fetchApi("/brands");
+      const brandsResponse = await fetchApi("/brands");
+      const fetchedBrands = brandsResponse?.data || brandsResponse || [];
       setBrands(
         fetchedBrands.map((b) => ({
           name: b.name,
@@ -52,6 +54,8 @@ export default function ProductSidebar({ activeFilters, onFilterChange }) {
       );
     } catch (error) {
       console.error("Lỗi khi tải danh mục/thương hiệu:", error);
+      setCategories([]);
+      setBrands([]);
     } finally {
       setLoading(false);
     }
@@ -62,10 +66,19 @@ export default function ProductSidebar({ activeFilters, onFilterChange }) {
   }, [fetchData]);
 
   if (loading) {
-    // Không cần loading overlay, chỉ cần hiển thị loading state nhỏ
+    // Loading skeleton cho sidebar
     return (
-      <aside className="w-full text-center text-sm text-gray-500">
-        Đang tải bộ lọc...
+      <aside className="w-full space-y-4">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="bg-white rounded-lg shadow-sm p-4 animate-pulse">
+            <div className="h-5 bg-gray-200 rounded w-2/3 mb-4" />
+            <div className="space-y-2">
+              {[1, 2, 3, 4].map((j) => (
+                <div key={j} className="h-4 bg-gray-200 rounded" />
+              ))}
+            </div>
+          </div>
+        ))}
       </aside>
     );
   }
@@ -74,15 +87,20 @@ export default function ProductSidebar({ activeFilters, onFilterChange }) {
     <aside className="w-full">
       {/* 1. Danh mục sản phẩm */}
       <FilterGroup title="Danh mục sản phẩm">
-        <Link to="/danh-muc/tat-ca" className="text-sm hover:text-primary">
+        <Link 
+          to="/danh-muc/tat-ca" 
+          className="text-sm hover:text-primary transition-colors duration-200 flex items-center gap-2 py-1"
+        >
+          <i className="fas fa-th text-xs text-gray-400" />
           TẤT CẢ SẢN PHẨM
         </Link>
         {categories.map((cat) => (
           <Link
             key={cat.id}
-            to={`/danh-muc/${cat.slug}`} // Sử dụng slug cho URL
-            className="text-sm hover:text-primary"
+            to={`/danh-muc/${cat.slug}`}
+            className="text-sm hover:text-primary transition-colors duration-200 flex items-center gap-2 py-1"
           >
+            <i className="fas fa-angle-right text-xs text-gray-400" />
             {cat.name.toUpperCase()}
           </Link>
         ))}
@@ -91,35 +109,41 @@ export default function ProductSidebar({ activeFilters, onFilterChange }) {
       {/* 2. Lọc theo giá (Dùng logic getPriceQuery trên ProductListPage) */}
       <FilterGroup title="Giá">
         {priceRanges.map((range) => (
-          <label key={range} className="flex items-center gap-2 text-sm">
+          <label 
+            key={range} 
+            className="flex items-center gap-2 text-sm cursor-pointer hover:text-primary transition-colors duration-200 py-1"
+          >
             <input
               type="checkbox"
-              className="rounded"
-              // Kiểm tra xem range này có đang được chọn không
+              className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary focus:ring-2 cursor-pointer"
               checked={activeFilters.prices.includes(range)}
-              // Khi thay đổi, cập nhật state của component cha
               onChange={() => onFilterChange("prices", range)}
             />
-            {range}
+            <span>{range}</span>
           </label>
         ))}
       </FilterGroup>
 
       {/* 3. Lọc theo thương hiệu (SỬ DỤNG ID TỪ API) */}
       <FilterGroup title="Thương hiệu">
-        {brands.map((brand) => (
-          <label key={brand.id} className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              className="rounded"
-              // Quan trọng: Sử dụng ID của Brand để kiểm tra và gửi lên API
-              checked={activeFilters.brands.includes(brand.id)}
-              // Quan trọng: Gửi ID của Brand lên component cha
-              onChange={() => onFilterChange("brands", brand.id)}
-            />
-            {brand.name}
-          </label>
-        ))}
+        {brands.length === 0 ? (
+          <p className="text-sm text-gray-400 italic">Không có thương hiệu</p>
+        ) : (
+          brands.map((brand) => (
+            <label 
+              key={brand.id} 
+              className="flex items-center gap-2 text-sm cursor-pointer hover:text-primary transition-colors duration-200 py-1"
+            >
+              <input
+                type="checkbox"
+                className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary focus:ring-2 cursor-pointer"
+                checked={activeFilters.brands.includes(brand.id)}
+                onChange={() => onFilterChange("brands", brand.id)}
+              />
+              <span>{brand.name}</span>
+            </label>
+          ))
+        )}
       </FilterGroup>
     </aside>
   );

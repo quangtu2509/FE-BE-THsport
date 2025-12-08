@@ -14,8 +14,9 @@ export default function AdminUsersPage() {
     try {
       // API lấy tất cả người dùng (Admin)
       const response = await fetchApi(`/admin/users?page=${page}&limit=20`);
-      setUsers(response.users);
-      setPagination(response.pagination);
+      const data = response.data || response;
+      setUsers(data.users || []);
+      setPagination(data.pagination || { page: 1, pages: 1, total: 0 });
     } catch (error) {
       toast.error("Không thể tải danh sách người dùng.");
     } finally {

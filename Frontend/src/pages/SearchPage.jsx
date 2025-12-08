@@ -33,16 +33,17 @@ export default function SearchPage() {
     const params = {
       page: currentPage,
       limit: PRODUCTS_PER_PAGE,
-      search: query, // Sử dụng tham số 'search' của Backend
+      q: query, // Sử dụng tham số 'q' của endpoint /search
     };
 
     const queryString = buildQueryParams(params);
 
     try {
-      const response = await fetchApi(`/products?${queryString}`);
+      const response = await fetchApi(`/products/search?${queryString}`);
 
       // Ánh xạ dữ liệu từ Backend về cấu trúc cần thiết cho Frontend
-      const products = response.products.map((p) => ({
+      // ResponseHelper trả về {success, data, pagination}
+      const products = response.data.map((p) => ({
         id: p._id,
         name: p.name,
         price: p.price,

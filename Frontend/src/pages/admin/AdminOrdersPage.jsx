@@ -29,8 +29,10 @@ export default function AdminOrdersPage() {
     try {
       // API lấy tất cả đơn hàng (Admin)
       const response = await fetchApi(`/admin/orders?page=${page}&limit=20`);
-      setOrders(response.orders);
-      setPagination(response.pagination);
+      // Backend có thể trả về {data: {orders, pagination}} hoặc {orders, pagination}
+      const data = response.data || response;
+      setOrders(data.orders || []);
+      setPagination(data.pagination || { page: 1, pages: 1, total: 0 });
     } catch (error) {
       toast.error("Không thể tải danh sách đơn hàng.");
     } finally {
@@ -88,7 +90,7 @@ export default function AdminOrdersPage() {
     <div>
       <div className="mb-4">
         <span className="font-medium text-gray-600">
-          Tổng cộng: {pagination.total} đơn hàng
+          Tổng cộng: {pagination?.total || 0} đơn hàng
         </span>
       </div>
 
@@ -123,13 +125,13 @@ export default function AdminOrdersPage() {
                   #{order._id.slice(-6).toUpperCase()}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">{order.user.name}</div>
+                  <div className="text-sm text-gray-900">{order.user?.name || 'N/A'}</div>
                   <div className="text-xs text-gray-500">
-                    {order.user.email}
+                    {order.user?.email || 'N/A'}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-green-600">
-                  {formatCurrency(order.total)}
+                  {formatCurrency(order.total || 0)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {new Date(order.createdAt).toLocaleDateString("vi-VN")}

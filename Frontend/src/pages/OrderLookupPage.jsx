@@ -1,48 +1,57 @@
 // src/pages/OrderLookupPage.jsx
 import React, { useState } from "react";
+import { fetchApi } from "../utils/api";
+import { toast } from "react-toastify";
 
 export default function OrderLookupPage() {
   // State để lưu mã đơn hàng người dùng nhập
   const [orderId, setOrderId] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
   // State để lưu kết quả tra cứu
   const [lookupResult, setLookupResult] = useState(null);
-  // State để biết có đang "tải" (giả) hay không
+  // State để biết có đang "tải" hay không
   const [isLoading, setIsLoading] = useState(false);
 
   // Hàm xử lý khi nhấn nút "Tra cứu"
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    if (!orderId.trim() && !phoneNumber.trim()) {
+      toast.error("Vui lòng nhập mã đơn hàng hoặc số điện thoại");
+      return;
+    }
+
     setIsLoading(true);
-    setLookupResult(null); // Xóa kết quả cũ
+    setLookupResult(null);
 
-    // --- LOGIC GIẢ LẬP TRUY VẤN CÔNG KHAI (MOCK LOGIC) ---
-    // Chúng ta giả vờ gọi API trong 1 giây
-    setTimeout(() => {
-      // Mã "ma thuật" (magic code) để tra cứu thành công
-      const magicCode = "12345";
-
-      // Kiểm tra thành công nếu mã là "12345" hoặc có chứa "0123" (giả lập số điện thoại)
-      if (orderId === magicCode || orderId.includes("0123")) {
-        // Nếu đúng, trả về kết quả thành công
+    try {
+      // Gọi API tra cứu đơn hàng công khai (không cần auth)
+      const result = await fetchApi(`/orders/lookup?orderId=${orderId}&phone=${phoneNumber}`);
+      
+      if (result && result._id) {
         setLookupResult({
           status: "success",
-          id: orderId, // Dùng mã người dùng nhập
-          date: "10/11/2025",
-          customer: "Khách Hàng Tra Cứu",
-          item: "Giày Adidas Predator Accuracy.3 TF (Size: 41) x 1",
-          orderStatus: "Đang trên đường giao",
+          id: result._id,
+          date: new Date(result.createdAt).toLocaleDateString("vi-VN"),
+          customer: result.user?.name || "Khách hàng",
+          items: result.items.map(i => `${i.name} x ${i.quantity}`).join(", "),
+          total: result.total?.toLocaleString("vi-VN") || "0",
+          orderStatus: result.status,
         });
       } else {
-        // Nếu sai, trả về lỗi
         setLookupResult({
           status: "error",
-          message:
-            "Không tìm thấy đơn hàng. Vui lòng kiểm tra lại Mã đơn hàng hoặc Số điện thoại (Thử: 12345).",
+          message: "Không tìm thấy đơn hàng. Vui lòng kiểm tra lại mã đơn hàng hoặc số điện thoại.",
         });
       }
-      setIsLoading(false); // Tắt loading
-    }, 1000); // Giả lập 1 giây chờ mạng
-    // --- KẾT THÚC LOGIC "GIẢ" ---
+    } catch (error) {
+      setLookupResult({
+        status: "error",
+        message: error.message || "Lỗi khi tra cứu. Vui lòng thử lại.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -60,16 +69,29 @@ export default function OrderLookupPage() {
       >
         <div>
           <label htmlFor="orderId" className="block text-sm font-bold mb-1">
-            Mã đơn hàng hoặc SĐT *
+            Mã đơn hàng
           </label>
           <input
             type="text"
             id="orderId"
-            required
             value={orderId}
             onChange={(e) => setOrderId(e.target.value)}
             className="w-full p-3 border border-gray-300 rounded-md"
-            placeholder="Nhập mã đơn hàng (thử: 12345)"
+            placeholder="Nhập mã đơn hàng"
+          />
+        </div>
+
+        <div>
+          <label htmlFor="phoneNumber" className="block text-sm font-bold mb-1">
+            Số điện thoại
+          </label>
+          <input
+            type="tel"
+            id="phoneNumber"
+            value={phoneNumber}
+            onChange={(e) => setPhoneNumber(e.target.value)}
+            className="w-full p-3 border border-gray-300 rounded-md"
+            placeholder="Nhập số điện thoại"
           />
         </div>
 

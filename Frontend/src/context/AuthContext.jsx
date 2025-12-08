@@ -25,11 +25,14 @@ export function AuthProvider({ children }) {
   // Dùng useCallback để tránh re-render không cần thiết
   const login = async (email, password) => {
     try {
-      const data = await fetchApi("/auth/login", {
+      const response = await fetchApi("/auth/login", {
         method: "POST",
         body: JSON.stringify({ email, password }),
       });
 
+      // Backend trả về format: { success: true, statusCode: 200, message: "...", data: { token, user } }
+      const { data } = response;
+      
       // Lưu token và user vào localStorage
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
@@ -43,8 +46,8 @@ export function AuthProvider({ children }) {
 
   const register = async (name, email, password) => {
     try {
-      // Backend cần username, nên dùng email làm username tạm thời
-      await fetchApi("/auth/register", {
+      // Backend trả về format: { success: true, statusCode: 201, message: "...", data: { token, user } }
+      const response = await fetchApi("/auth/register", {
         method: "POST",
         body: JSON.stringify({ name, email, username: email, password }),
       });
@@ -54,12 +57,19 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    setCurrentUser(null);
-    // Không cần gọi API logout, chỉ cần xóa token client-side
-    toast.info("Đã đăng xuất.");
+  const logout = async () => {
+    try {
+      // Gọi API logout để xóa HTTP-only cookie
+      await fetchApi("/auth/logout", { method: "POST" });
+    } catch (error) {
+      console.error("Logout API error:", error);
+    } finally {
+      // Xóa localStorage dù API có lỗi hay không
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      setCurrentUser(null);
+      toast.info("Đã đăng xuất.");
+    }
   };
 
   const value = {
