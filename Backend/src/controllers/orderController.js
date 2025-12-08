@@ -261,10 +261,8 @@ exports.lookupOrder = async (req, res) => {
     res.json(lookupData);
   } catch (err) {
     console.error("Lỗi tra cứu:", err);
-    res
-      .status(400)
-      .json({
-        error: err.message || "Lỗi không xác định khi tra cứu đơn hàng.",
-      });
+    res.status(400).json({
+      error: err.message || "Lỗi không xác định khi tra cứu đơn hàng.",
+    });
   }
 };
