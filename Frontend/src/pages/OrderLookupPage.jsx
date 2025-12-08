@@ -1,5 +1,6 @@
 // src/pages/OrderLookupPage.jsx
 import React, { useState } from "react";
+import { fetchApi } from "../utils/api";
 
 export default function OrderLookupPage() {
   // State để lưu mã đơn hàng người dùng nhập
@@ -10,39 +11,44 @@ export default function OrderLookupPage() {
   const [isLoading, setIsLoading] = useState(false);
 
   // Hàm xử lý khi nhấn nút "Tra cứu"
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     setLookupResult(null); // Xóa kết quả cũ
+    setIsLoading(true);
+    try {
+      // GỌI API THỰC TẾ
+      const data = await fetchApi(`/orders/lookup/${orderId}`);
 
-    // --- LOGIC GIẢ LẬP TRUY VẤN CÔNG KHAI (MOCK LOGIC) ---
-    // Chúng ta giả vờ gọi API trong 1 giây
-    setTimeout(() => {
-      // Mã "ma thuật" (magic code) để tra cứu thành công
-      const magicCode = "12345";
+      // Xử lý thông tin sản phẩm (lấy 1 sản phẩm đầu tiên và đếm số lượng còn lại)
+      const firstItem = data.items[0];
+      const itemSummary =
+        data.items.length > 1
+          ? `${firstItem.name} x ${firstItem.quantity} và ${
+              data.items.length - 1
+            } sản phẩm khác`
+          : `${firstItem.name} x ${firstItem.quantity}`;
 
-      // Kiểm tra thành công nếu mã là "12345" hoặc có chứa "0123" (giả lập số điện thoại)
-      if (orderId === magicCode || orderId.includes("0123")) {
-        // Nếu đúng, trả về kết quả thành công
-        setLookupResult({
-          status: "success",
-          id: orderId, // Dùng mã người dùng nhập
-          date: "10/11/2025",
-          customer: "Khách Hàng Tra Cứu",
-          item: "Giày Adidas Predator Accuracy.3 TF (Size: 41) x 1",
-          orderStatus: "Đang trên đường giao",
-        });
-      } else {
-        // Nếu sai, trả về lỗi
-        setLookupResult({
-          status: "error",
-          message:
-            "Không tìm thấy đơn hàng. Vui lòng kiểm tra lại Mã đơn hàng hoặc Số điện thoại (Thử: 12345).",
-        });
-      }
-      setIsLoading(false); // Tắt loading
-    }, 1000); // Giả lập 1 giây chờ mạng
-    // --- KẾT THÚC LOGIC "GIẢ" ---
+      // Cập nhật kết quả tra cứu
+      setLookupResult({
+        status: "success",
+        id: data.id.slice(-6).toUpperCase(),
+        date: new Date(data.date).toLocaleDateString("vi-VN"),
+        customer: data.shippingAddress,
+        item: itemSummary,
+        orderStatus: data.status,
+        total: data.total,
+      });
+    } catch (e) {
+      // Hiển thị lỗi từ Backend (ví dụ: Không tìm thấy đơn hàng)
+      console.error("Lỗi tra cứu:", e);
+      setLookupResult({
+        status: "error",
+        message: e.message || "Lỗi không xác định khi tra cứu đơn hàng.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -120,3 +126,19 @@ export default function OrderLookupPage() {
     </div>
   );
 }
+
+const getStatusColor = (status) => {
+  switch (status) {
+    case "completed":
+      return "text-green-600";
+    case "delivering":
+    case "confirmed":
+      return "text-blue-600";
+    case "pending":
+      return "text-yellow-600";
+    case "cancelled":
+      return "text-red-600";
+    default:
+      return "text-gray-600";
+  }
+};

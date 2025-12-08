@@ -26,11 +26,11 @@ export default function AdminLayout() {
   return (
     // FIX 2: Thêm margin-top cho toàn bộ nội dung Admin Layout
     // để đẩy nội dung xuống dưới fixed Header (95px)
-    <div className="min-h-screen bg-gray-50 mt-[95px]">
+    <div className="min-h-screen bg-gray-50 mt-[95px] flex">
       {/* Sidebar giờ đã được offset top-[95px] */}
       <AdminSidebar />
 
-      <main className="ml-64 flex-1 p-8">
+      <main className="flex-1 p-8">
         <h1 className="text-3xl font-bold mb-8 text-gray-800 border-b pb-4">
           {getTitle()}
         </h1>
