@@ -20,7 +20,7 @@ export default function AdminSidebar() {
 
   return (
     // ĐÃ SỬA: Đặt top = 95px và h-full bằng calc() để chiếm hết phần còn lại của viewport
-    <div className="w-64 bg-white p-4 shadow-lg fixed top-[95px] left-0 h-[calc(100vh-95px)] z-10">
+    <div className="w-64 bg-white p-4 shadow-lg sticky top-[95px] h-[calc(100vh-95px)] z-10">
       {/* Container cuộn được */}
       <div className="h-full overflow-y-auto pt-2">
         <nav className="flex flex-col space-y-2">

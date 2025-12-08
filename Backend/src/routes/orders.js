@@ -1,8 +1,8 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const orderController = require('../controllers/orderController');
-const auth = require('../middleware/auth');
-const admin = require('../middleware/admin');
+const orderController = require("../controllers/orderController");
+const auth = require("../middleware/auth");
+const admin = require("../middleware/admin");
 
 /**
  * @swagger
@@ -91,7 +91,7 @@ const admin = require('../middleware/admin');
  *       401:
  *         description: Chưa xác thực
  */
-router.post('/', auth, orderController.createOrder);
+router.post("/", auth, orderController.createOrder);
 
 /**
  * @swagger
@@ -124,7 +124,7 @@ router.post('/', auth, orderController.createOrder);
  *       401:
  *         description: Chưa xác thực
  */
-router.get('/', auth, orderController.getOrders);
+router.get("/", auth, orderController.getOrders);
 
 /**
  * @swagger
@@ -140,7 +140,7 @@ router.get('/', auth, orderController.getOrders);
  *       401:
  *         description: Chưa xác thực
  */
-router.get('/history', auth, orderController.getOrderHistory);
+router.get("/history", auth, orderController.getOrderHistory);
 
 /**
  * @swagger
@@ -163,7 +163,7 @@ router.get('/history', auth, orderController.getOrderHistory);
  *       404:
  *         description: Không tìm thấy đơn hàng
  */
-router.get('/:id', auth, orderController.getOrder);
+router.get("/:id", auth, orderController.getOrder);
 
 /**
  * @swagger
@@ -201,7 +201,7 @@ router.get('/:id', auth, orderController.getOrder);
  *       404:
  *         description: Không tìm thấy đơn hàng
  */
-router.put('/:id', auth, admin, orderController.updateOrder);
+router.put("/:id", auth, admin, orderController.updateOrder);
 
 /**
  * @swagger
@@ -238,6 +238,26 @@ router.put('/:id', auth, admin, orderController.updateOrder);
  *       404:
  *         description: Không tìm thấy đơn hàng
  */
-router.delete('/:id', auth, orderController.deleteOrder);
+router.delete("/:id", auth, orderController.deleteOrder);
 
 module.exports = router;
+/**
+ * @swagger
+ * /orders/lookup/{orderId}:
+ * get:
+ * summary: Tra cứu đơn hàng công khai theo ID
+ * tags: [Orders]
+ * parameters:
+ * - in: path
+ * name: orderId
+ * required: true
+ * schema:
+ * type: string
+ * description: ID của đơn hàng
+ * responses:
+ * 200:
+ * description: Tra cứu thành công
+ * 404:
+ * description: Không tìm thấy đơn hàng
+ */
+router.get("/lookup/:orderId", orderController.lookupOrder); // <-- ROUTE MỚI (KHÔNG CẦN AUTH)

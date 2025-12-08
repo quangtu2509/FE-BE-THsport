@@ -1,5 +1,6 @@
 // src/pages/OrderLookupPage.jsx
 import React, { useState } from "react";
+import { fetchApi } from "../utils/api";
 
 export default function OrderLookupPage() {
   // State để lưu mã đơn hàng người dùng nhập
@@ -10,39 +11,44 @@ export default function OrderLookupPage() {
   const [isLoading, setIsLoading] = useState(false);
 
   // Hàm xử lý khi nhấn nút "Tra cứu"
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     setLookupResult(null); // Xóa kết quả cũ
+    setIsLoading(true);
+    try {
+      // GỌI API THỰC TẾ
+      const data = await fetchApi(`/orders/lookup/${orderId}`);
 
-    // --- LOGIC GIẢ LẬP TRUY VẤN CÔNG KHAI (MOCK LOGIC) ---
-    // Chúng ta giả vờ gọi API trong 1 giây
-    setTimeout(() => {
-      // Mã "ma thuật" (magic code) để tra cứu thành công
-      const magicCode = "12345";
+      // Xử lý thông tin sản phẩm (lấy 1 sản phẩm đầu tiên và đếm số lượng còn lại)
+      const firstItem = data.items[0];
+      const itemSummary =
+        data.items.length > 1
+          ? `${firstItem.name} x ${firstItem.quantity} và ${
+              data.items.length - 1
+            } sản phẩm khác`
+          : `${firstItem.name} x ${firstItem.quantity}`;
 
-      // Kiểm tra thành công nếu mã là "12345" hoặc có chứa "0123" (giả lập số điện thoại)
-      if (orderId === magicCode || orderId.includes("0123")) {
-        // Nếu đúng, trả về kết quả thành công
-        setLookupResult({
-          status: "success",
-          id: orderId, // Dùng mã người dùng nhập
-          date: "10/11/2025",
-          customer: "Khách Hàng Tra Cứu",
-          item: "Giày Adidas Predator Accuracy.3 TF (Size: 41) x 1",
-          orderStatus: "Đang trên đường giao",
-        });
-      } else {
-        // Nếu sai, trả về lỗi
-        setLookupResult({
-          status: "error",
-          message:
-            "Không tìm thấy đơn hàng. Vui lòng kiểm tra lại Mã đơn hàng hoặc Số điện thoại (Thử: 12345).",
-        });
-      }
-      setIsLoading(false); // Tắt loading
-    }, 1000); // Giả lập 1 giây chờ mạng
-    // --- KẾT THÚC LOGIC "GIẢ" ---
+      // Cập nhật kết quả tra cứu
+      setLookupResult({
+        status: "success",
+        id: data.id.slice(-6).toUpperCase(),
+        date: new Date(data.createdAt || data.date).toLocaleDateString("vi-VN"), // FIX: Dùng createdAt hoặc date
+        customer: data.shippingAddress,
+        items: data.items, // LƯU TRỮ TOÀN BỘ ITEMS
+        orderStatus: data.status,
+        total: data.total,
+      });
+    } catch (e) {
+      // Hiển thị lỗi từ Backend (ví dụ: Không tìm thấy đơn hàng)
+      console.error("Lỗi tra cứu:", e);
+      setLookupResult({
+        status: "error",
+        message: e.message || "Lỗi không xác định khi tra cứu đơn hàng.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -94,25 +100,70 @@ export default function OrderLookupPage() {
 
           {/* Nếu tra cứu thành công */}
           {lookupResult.status === "success" && (
-            <div className="flex flex-col gap-2">
-              <p>
-                <strong>Mã đơn hàng:</strong> {lookupResult.id}
-              </p>
-              <p>
-                <strong>Khách hàng:</strong> {lookupResult.customer}
-              </p>
-              <p>
-                <strong>Ngày đặt:</strong> {lookupResult.date}
-              </p>
-              <p>
-                <strong>Sản phẩm:</strong> {lookupResult.item}
-              </p>
-              <p>
-                <strong>Trạng thái:</strong>
-                <span className="font-bold text-green-600 ml-2">
-                  {lookupResult.orderStatus}
+            <div className="flex flex-col gap-4">
+              {/* Thông tin chung */}
+              <div className="border-b pb-4 space-y-2">
+                <p>
+                  <strong>Mã đơn hàng:</strong> {lookupResult.id}
+                </p>
+                <p>
+                  <strong>Ngày đặt:</strong> {lookupResult.date}
+                </p>
+                <p>
+                  <strong>Khách hàng:</strong> {lookupResult.customer}
+                </p>
+                <p>
+                  <strong>Trạng thái:</strong>
+                  <span
+                    className={`font-bold ml-2 ${getStatusColor(
+                      lookupResult.orderStatus
+                    )}`}
+                  >
+                    {lookupResult.orderStatus.toUpperCase()}
+                  </span>
+                </p>
+              </div>
+
+              {/* Chi tiết sản phẩm */}
+              <h3 className="text-lg font-bold">Sản phẩm đã đặt:</h3>
+              {lookupResult.items.map((item, index) => (
+                <div
+                  key={index}
+                  className="flex items-start justify-between border-b pb-2 last:border-b-0"
+                >
+                  <div className="flex items-center gap-3">
+                    <img
+                      src={
+                        item.imageUrl ||
+                        item.image ||
+                        "https://via.placeholder.com/50"
+                      }
+                      alt={item.name}
+                      className="w-12 h-12 object-cover rounded-md"
+                    />
+                    <div>
+                      <p className="text-sm font-medium">{item.name}</p>
+                      <p className="text-xs text-gray-500">
+                        SL: {item.quantity}
+                      </p>
+                    </div>
+                  </div>
+                  <p className="text-sm font-semibold">
+                    {(item.price * item.quantity).toLocaleString("vi-VN")} ₫
+                  </p>
+                </div>
+              ))}
+
+              {/* Tổng tiền */}
+              <div className="flex justify-between font-bold text-lg border-t pt-4">
+                <span>Tổng cộng:</span>
+                <span className="text-red-600">
+                  {lookupResult.total
+                    ? lookupResult.total.toLocaleString("vi-VN")
+                    : "0"}{" "}
+                  ₫
                 </span>
-              </p>
+              </div>
             </div>
           )}
         </div>
@@ -120,3 +171,19 @@ export default function OrderLookupPage() {
     </div>
   );
 }
+
+const getStatusColor = (status) => {
+  switch (status) {
+    case "completed":
+      return "text-green-600";
+    case "delivering":
+    case "confirmed":
+      return "text-blue-600";
+    case "pending":
+      return "text-yellow-600";
+    case "cancelled":
+      return "text-red-600";
+    default:
+      return "text-gray-600";
+  }
+};
