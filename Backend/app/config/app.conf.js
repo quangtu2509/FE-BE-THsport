@@ -9,7 +9,7 @@ module.exports = {
   },
 
   cors: {
-    origin: (process.env.CORS_ORIGIN || 'http://localhost:5173,http://localhost:5174,https://thsports-frontend.onrender.com').split(','),
+    origin: (process.env.CORS_ORIGIN || 'http://localhost:5173,http://localhost:5174,https://thsport-frontend.onrender.com,https://thsports-frontend.onrender.com').split(','),
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Cache-Control', 'Pragma', 'Expires'],

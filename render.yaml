@@ -16,7 +16,7 @@ services:
       - key: JWT_SECRET
         sync: false
       - key: CORS_ORIGIN
-        value: https://thsport-frontend.onrender.com,http://localhost:5173,http://localhost:5174
+        value: https://thsport-frontend.onrender.com,https://thsports-frontend.onrender.com,http://localhost:5173,http://localhost:5174
 
   - type: web
     name: thsport-frontend
