@@ -44,7 +44,11 @@ export default function CheckoutPage() {
     fullName: currentUser ? currentUser.name : "",
     email: currentUser ? currentUser.email : "",
     phone: "",
-    address: "",
+    province: "",
+    district: "",
+    ward: "",
+    street: "",
+    note: "",
   });
 
   const handleInputChange = (e) => {
@@ -76,14 +80,26 @@ export default function CheckoutPage() {
         price: item.price,
         image: item.imageUrl,
         quantity: item.quantity,
+        selectedSize: item.selectedSize || null,
       }));
 
       const orderPayload = {
         items: orderItems,
+        subtotal: totalPrice,
+        shippingFee: 0, // Có thể tính phí ship sau
+        discount: 0, // Có thể thêm mã giảm giá sau
         total: totalPrice,
         paymentMethod: paymentMethod,
-        shippingAddress: `${formData.fullName}, ${formData.phone}, ${formData.address}`,
-        notes: "Đơn hàng từ website",
+        shippingAddress: {
+          fullName: formData.fullName,
+          phone: formData.phone,
+          province: formData.province,
+          district: formData.district,
+          ward: formData.ward,
+          street: formData.street,
+          note: formData.note,
+        },
+        customerNote: formData.note || "",
       };
 
       // 3. Gọi API tạo đơn hàng
@@ -131,39 +147,76 @@ export default function CheckoutPage() {
             <div className="grid grid-cols-2 gap-4">
               <input
                 type="text"
-                placeholder="Họ và tên"
+                placeholder="Họ và tên *"
                 name="fullName"
                 value={formData.fullName}
                 onChange={handleInputChange}
                 required
-                className="col-span-2 p-3 border rounded-md"
+                className="col-span-2 p-3 border rounded-md focus:border-primary focus:outline-none"
               />
               <input
                 type="email"
-                placeholder="Email"
+                placeholder="Email *"
                 name="email"
                 value={formData.email}
                 onChange={handleInputChange}
                 required
-                className="col-span-1 p-3 border rounded-md"
+                className="col-span-1 p-3 border rounded-md focus:border-primary focus:outline-none"
               />
               <input
                 type="tel"
-                placeholder="Số điện thoại"
+                placeholder="Số điện thoại *"
                 name="phone"
                 value={formData.phone}
                 onChange={handleInputChange}
                 required
-                className="col-span-1 p-3 border rounded-md"
+                pattern="[0-9]{10,11}"
+                title="Vui lòng nhập số điện thoại hợp lệ (10-11 số)"
+                className="col-span-1 p-3 border rounded-md focus:border-primary focus:outline-none"
               />
               <input
                 type="text"
-                placeholder="Địa chỉ (Số nhà, tên đường, Phường/Xã, Quận/Huyện, Tỉnh/TP)"
-                name="address"
-                value={formData.address}
+                placeholder="Tỉnh/Thành phố *"
+                name="province"
+                value={formData.province}
                 onChange={handleInputChange}
                 required
-                className="col-span-2 p-3 border rounded-md"
+                className="col-span-1 p-3 border rounded-md focus:border-primary focus:outline-none"
+              />
+              <input
+                type="text"
+                placeholder="Quận/Huyện *"
+                name="district"
+                value={formData.district}
+                onChange={handleInputChange}
+                required
+                className="col-span-1 p-3 border rounded-md focus:border-primary focus:outline-none"
+              />
+              <input
+                type="text"
+                placeholder="Phường/Xã *"
+                name="ward"
+                value={formData.ward}
+                onChange={handleInputChange}
+                required
+                className="col-span-2 p-3 border rounded-md focus:border-primary focus:outline-none"
+              />
+              <input
+                type="text"
+                placeholder="Địa chỉ chi tiết (Số nhà, tên đường) *"
+                name="street"
+                value={formData.street}
+                onChange={handleInputChange}
+                required
+                className="col-span-2 p-3 border rounded-md focus:border-primary focus:outline-none"
+              />
+              <textarea
+                placeholder="Ghi chú thêm (tùy chọn)"
+                name="note"
+                value={formData.note}
+                onChange={handleInputChange}
+                rows="3"
+                className="col-span-2 p-3 border rounded-md focus:border-primary focus:outline-none resize-none"
               />
             </div>
           </div>
@@ -171,53 +224,11 @@ export default function CheckoutPage() {
           {/* Form phương thức thanh toán */}
           <h2 className="text-2xl font-bold">Phương thức thanh toán</h2>
           <div className="bg-white p-6 rounded-lg shadow-sm flex flex-col gap-4">
-            {/* Lựa chọn 1: Chuyển khoản */}
-            <div
-              onClick={() => setPaymentMethod("bank")}
-              className={`border p-4 rounded-md cursor-pointer ${
-                paymentMethod === "bank" ? "border-primary" : ""
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <input
-                  type="radio"
-                  name="paymentMethod"
-                  value="bank"
-                  checked={paymentMethod === "bank"}
-                  onChange={() => setPaymentMethod("bank")}
-                  className="w-5 h-5"
-                />
-                <img
-                  src="https://theme.hstatic.net/1000061481/1001035882/14/payment_method_vnpay_logo.png?v=2391"
-                  alt="Chuyển khoản"
-                  className="h-8"
-                />
-                <span className="font-bold">Chuyển khoản ngân hàng</span>
-              </div>
-
-              {paymentMethod === "bank" && (
-                <div className="mt-4 p-4 bg-gray-50 rounded-md text-center">
-                  <p className="font-bold">Quét mã QR để thanh toán</p>
-                  <img
-                    src={`https://img.vietqr.io/image/970432-000123456789-print.png?amount=${totalPrice}`}
-                    alt="Mã QR Chuyển khoản"
-                    className="w-48 h-48 mx-auto my-2"
-                  />
-                  <p className="text-sm">
-                    Nội dung: THANH TOAN DON HANG [Mã đơn hàng]
-                  </p>
-                  <p className="text-sm font-bold">
-                    STK: 000123456789 - NGUYEN VAN A
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {/* Lựa chọn 2: COD */}
+            {/* Lựa chọn 1: COD */}
             <div
               onClick={() => setPaymentMethod("cod")}
-              className={`border p-4 rounded-md cursor-pointer ${
-                paymentMethod === "cod" ? "border-primary" : ""
+              className={`border p-4 rounded-md cursor-pointer transition-all ${
+                paymentMethod === "cod" ? "border-primary bg-red-50" : "hover:border-gray-400"
               }`}
             >
               <div className="flex items-center gap-3">
@@ -227,20 +238,81 @@ export default function CheckoutPage() {
                   value="cod"
                   checked={paymentMethod === "cod"}
                   onChange={() => setPaymentMethod("cod")}
-                  className="w-5 h-5"
+                  className="w-5 h-5 accent-primary cursor-pointer"
                 />
-                <img
-                  src="https://theme.hstatic.net/1000061481/1001035882/14/payment_method_cod_logo.png?v=2391"
-                  alt="COD"
-                  className="h-8"
-                />
-                <span className="font-bold">Thanh Toán Tại Nhà (COD)</span>
+                <span className="font-bold">Thanh Toán Khi Nhận Hàng (COD)</span>
               </div>
               {paymentMethod === "cod" && (
-                <p className="text-sm text-gray-600 mt-2 pl-8">
-                  Bạn sẽ thanh toán bằng tiền mặt khi nhận hàng.
+                <p className="text-sm text-gray-600 mt-3 pl-8">
+                  Bạn sẽ thanh toán bằng tiền mặt khi nhận hàng tại nhà.
                 </p>
               )}
+            </div>
+
+            {/* Lựa chọn 2: Chuyển khoản ngân hàng */}
+            <div
+              onClick={() => setPaymentMethod("bank_transfer")}
+              className={`border p-4 rounded-md cursor-pointer transition-all ${
+                paymentMethod === "bank_transfer" ? "border-primary bg-red-50" : "hover:border-gray-400"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <input
+                  type="radio"
+                  name="paymentMethod"
+                  value="bank_transfer"
+                  checked={paymentMethod === "bank_transfer"}
+                  onChange={() => setPaymentMethod("bank_transfer")}
+                  className="w-5 h-5 accent-primary cursor-pointer"
+                />
+                  <span className="font-bold">Chuyển khoản ngân hàng</span>
+              </div>
+
+              {paymentMethod === "bank_transfer" && (
+                <div className="mt-4 p-4 bg-gray-50 rounded-md">
+                  <p className="font-bold mb-3 text-center">Quét mã QR để thanh toán</p>
+                  <div className="flex justify-center">
+                    <img
+                      src={`https://img.vietqr.io/image/970415-0981972950-compact2.png?amount=${totalPrice}&addInfo=THANHTOAN`}
+                      alt="Mã QR Chuyển khoản"
+                      className="w-64 h-auto border rounded-lg"
+                    />
+                  </div>
+                  <div className="mt-4 text-sm text-center space-y-1">
+                    <p><strong>Ngân hàng:</strong> Vietinbank</p>
+                    <p><strong>Số tài khoản:</strong> 0981972950</p>
+                    <p><strong>Chủ tài khoản:</strong> NGUYEN QUANG TU</p>
+                    <p className="text-primary font-semibold mt-2">
+                      Nội dung: THANHTOAN [Mã đơn hàng của bạn]
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Lựa chọn 3: VNPay (Coming Soon) */}
+            <div className="border p-4 rounded-md bg-gray-100 cursor-not-allowed opacity-60">
+              <div className="flex items-center gap-3">
+                <input
+                  type="radio"
+                  disabled
+                  className="w-5 h-5"
+                />
+                
+                <span className="font-bold text-gray-500">VNPay</span>
+              </div>
+            </div>
+
+            {/* Lựa chọn 4: MoMo (Coming Soon) */}
+            <div className="border p-4 rounded-md bg-gray-100 cursor-not-allowed opacity-60">
+              <div className="flex items-center gap-3">
+                <input
+                  type="radio"
+                  disabled
+                  className="w-5 h-5"
+                />
+                <span className="font-bold text-gray-500 text-2xl">MoMo </span>
+              </div>
             </div>
           </div>
 
