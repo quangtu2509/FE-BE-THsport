@@ -4,12 +4,12 @@
 module.exports = {
   server: {
     port: process.env.PORT || 5000,
-    host: process.env.HOST || 'localhost',
+    host: process.env.HOST || '0.0.0.0',
     env: process.env.NODE_ENV || 'development'
   },
 
   cors: {
-    origin: (process.env.CORS_ORIGIN || 'http://localhost:5173,http://localhost:5174,https://fe-thsport.vercel.app').split(','),
+    origin: (process.env.CORS_ORIGIN || 'http://localhost:5173,http://localhost:5174,https://thsport-frontend.onrender.com,https://thsports-frontend.onrender.com').split(','),
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Cache-Control', 'Pragma', 'Expires'],

@@ -12,8 +12,29 @@ module.exports = (app) => {
   // Trust proxy
   app.set('trust proxy', 1);
 
-  // CORS
-  app.use(cors(appConfig.cors));
+  // CORS - Dynamic origin check
+  const corsOptions = {
+    ...appConfig.cors,
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps or curl)
+      if (!origin) return callback(null, true);
+      
+      // Check if origin is in allowed list
+      const allowedOrigins = appConfig.cors.origin;
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      
+      // In production, also allow any *.onrender.com subdomain
+      if (process.env.NODE_ENV === 'production' && origin.endsWith('.onrender.com')) {
+        return callback(null, true);
+      }
+      
+      callback(new Error('Not allowed by CORS'));
+    }
+  };
+  
+  app.use(cors(corsOptions));
 
   // Body parser
   app.use(express.json({ limit: appConfig.request.jsonLimit }));

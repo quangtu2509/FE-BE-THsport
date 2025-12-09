@@ -7,6 +7,10 @@ export const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:50
  * @param {object} options - Các tùy chọn fetch
  */
 export async function fetchApi(endpoint, options = {}) {
+  console.log('=== FETCH API ===');
+  console.log('Endpoint:', endpoint);
+  console.log('API_BASE_URL:', API_BASE_URL);
+  
   const token = localStorage.getItem("token");
   const headers = {
     "Content-Type": "application/json",
@@ -32,6 +36,11 @@ export async function fetchApi(endpoint, options = {}) {
     headers,
     credentials: 'include', // Gửi cookies (HTTP-only cookies từ backend)
     cache: 'no-store', // Không cache ở browser level
+  }).catch(error => {
+    console.error('=== FETCH ERROR ===');
+    console.error('Endpoint:', `${API_BASE_URL}${finalEndpoint}`);
+    console.error('Error:', error);
+    throw error;
   });
 
   if (!response.ok && response.status !== 304) {

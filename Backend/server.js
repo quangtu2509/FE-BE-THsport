@@ -68,7 +68,7 @@ app.get('/', (req, res) => {
     success: true,
     message: 'Welcome to TH Sport API',
     version: '1.0.0',
-    documentation: `http://localhost:${appConfig.server.port}/api-docs`
+    documentation: process.env.NODE_ENV === 'production' ? 'https://thsport-backend.onrender.com/api-docs' : `http://localhost:${appConfig.server.port}/api-docs`
   });
 });
 
@@ -138,7 +138,8 @@ async function startServer() {
     // Start listening
     server = app.listen(appConfig.server.port, appConfig.server.host, () => {
       logger.info(`\nServer running on http://${appConfig.server.host}:${appConfig.server.port}`);
-      logger.info(`API Documentation: http://${appConfig.server.host}:${appConfig.server.port}/api-docs`);
+      const docsUrl = process.env.NODE_ENV === 'production' ? 'https://thsport-backend.onrender.com/api-docs' : `http://${appConfig.server.host}:${appConfig.server.port}/api-docs`;
+      logger.info(`API Documentation: ${docsUrl}`);
       logger.info(`Environment: ${env.NODE_ENV}`);
       logger.info(`Logs directory: logs/`);
       logger.info('\nServer is ready to accept requests\n');
