@@ -1,10 +1,9 @@
 // src/pages/ProductDetailPage.jsx
-import React, { useState, useEffect, useCallback } from "react"; // Thêm useEffect, useCallback
+import React, { useState, useEffect, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useCart } from "../context/CartContext";
-// import { allProductsData } from "../data/products.js"; // ĐÃ BỎ: Không dùng mock data nữa
 import { toast } from "react-toastify";
-import { fetchApi } from "../utils/api"; // ĐÃ CÓ: Dùng để gọi API
+import { fetchApi } from "../utils/api";
 
 // Import các component con
 import ProductGallery from "../components/ProductGallery.jsx";
@@ -17,6 +16,7 @@ export default function ProductDetailPage() {
   // State chính để lưu trữ thông tin sản phẩm từ API
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [relatedProducts, setRelatedProducts] = useState([]); // Giữ nguyên state này
 
   // State cho các lựa chọn của người dùng (Chỉ giữ một lần khai báo)
   const [selectedSize, setSelectedSize] = useState(null);
@@ -29,24 +29,29 @@ export default function ProductDetailPage() {
     try {
       // Endpoint: /products/slug/:slug (dùng slug thay vì ID)
       const response = await fetchApi(`/products/slug/${slug}`);
-      
-      // Lấy data từ response (API trả về format: { success, statusCode, message, data })
-      const fetchedProduct = response.data || response;
+
+      // Lấy data từ response (API trả về format: { success, statusCode, message, data: { ...productData, relatedProducts: [...] } })
+      const fetchedData = response.data || response; // Object chứa product và relatedProducts
 
       // Chuẩn hóa/Ánh xạ dữ liệu từ Backend về cấu trúc Frontend
       const formattedProduct = {
-        id: fetchedProduct._id,
-        slug: fetchedProduct.slug,
-        name: fetchedProduct.name,
-        price: fetchedProduct.price,
-        brand: fetchedProduct.brand?.name || "N/A",
-        description: fetchedProduct.description,
+        id: fetchedData._id,
+        slug: fetchedData.slug,
+        name: fetchedData.name,
+        price: fetchedData.price,
+        brand: fetchedData.brand?.name || "N/A",
+        description: fetchedData.description,
         // Sử dụng trường images làm galleryImages
-        galleryImages: fetchedProduct.images || [],
-        availableSizes: fetchedProduct.availableSizes || [],
+        galleryImages: fetchedData.images || [],
+        availableSizes: fetchedData.availableSizes || [],
       };
 
       setProduct(formattedProduct);
+
+      // LẤY VÀ LƯU DỮ LIỆU SẢN PHẨM LIÊN QUAN THẬT SỰ
+      const related = fetchedData.relatedProducts || []; // <-- Lấy relatedProducts từ response
+      setRelatedProducts(related); // <-- Lưu vào state
+
       // Chọn size đầu tiên làm mặc định nếu có
       if (formattedProduct.availableSizes.length > 0) {
         setSelectedSize(formattedProduct.availableSizes[0]);
@@ -54,6 +59,7 @@ export default function ProductDetailPage() {
     } catch (error) {
       console.error("Lỗi khi tải chi tiết sản phẩm:", error);
       setProduct(null);
+      setRelatedProducts([]); // Clear related products nếu lỗi
     } finally {
       setLoading(false);
     }
@@ -63,35 +69,8 @@ export default function ProductDetailPage() {
     fetchProduct();
   }, [fetchProduct]);
 
-  // 2. LOGIC TẢI SẢN PHẨM LIÊN QUAN (MOCK ĐỂ TRÁNH LỖI)
-  // Trong ứng dụng API hoàn chỉnh, bạn sẽ cần gọi API để lấy sản phẩm liên quan.
-  // Hiện tại sử dụng mock đơn giản để tránh lỗi
-  const relatedProducts = [
-    {
-      id: "mock1",
-      name: "SP Liên Quan 1",
-      price: 1000000,
-      imageUrl: product?.galleryImages[0] || "https://via.placeholder.com/300",
-    },
-    {
-      id: "mock2",
-      name: "SP Liên Quan 2",
-      price: 2000000,
-      imageUrl: product?.galleryImages[0] || "https://via.placeholder.com/300",
-    },
-    {
-      id: "mock3",
-      name: "SP Liên Quan 3",
-      price: 3000000,
-      imageUrl: product?.galleryImages[0] || "https://via.placeholder.com/300",
-    },
-    {
-      id: "mock4",
-      name: "SP Liên Quan 4",
-      price: 4000000,
-      imageUrl: product?.galleryImages[0] || "https://via.placeholder.com/300",
-    },
-  ];
+  // 2. LOGIC TẢI SẢN PHẨM LIÊN QUAN (ĐÃ XÓA LOGIC MOCK DATA CŨ)
+  // Logic đã được chuyển vào fetchProduct và sử dụng state relatedProducts
 
   // 3. Xử lý bộ chọn số lượng
   const handleQuantityChange = (amount) => {
@@ -102,7 +81,11 @@ export default function ProductDetailPage() {
   const handleAddToCart = async () => {
     // Thêm async
     // Chỉ yêu cầu chọn size nếu sản phẩm có sizes
-    if (product.availableSizes && product.availableSizes.length > 0 && !selectedSize) {
+    if (
+      product.availableSizes &&
+      product.availableSizes.length > 0 &&
+      !selectedSize
+    ) {
       toast.error("Vui lòng chọn size!");
       return;
     }
@@ -185,7 +168,9 @@ export default function ProductDetailPage() {
                 ))}
               </div>
             ) : (
-              <p className="text-gray-500 italic">Sản phẩm này không cần chọn size</p>
+              <p className="text-gray-500 italic">
+                Sản phẩm này không cần chọn size
+              </p>
             )}
           </div>
 
@@ -278,10 +263,27 @@ export default function ProductDetailPage() {
             Sản phẩm liên quan
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {/* Sử dụng dữ liệu mock đơn giản để giữ UI không bị lỗi */}
-            {relatedProducts.map((prod) => (
-              <ProductCard key={prod.id} product={prod} />
-            ))}
+            {/* SỬ DỤNG DỮ LIỆU THẬT TỪ STATE relatedProducts */}
+            {relatedProducts.length > 0 ? (
+              relatedProducts.map((prod) => (
+                <ProductCard
+                  key={prod._id}
+                  product={{
+                    id: prod._id,
+                    name: prod.name,
+                    price: prod.price,
+                    slug: prod.slug,
+                    // Lấy ảnh đầu tiên, hoặc fallback nếu không có ảnh
+                    imageUrl:
+                      prod.images?.[0] || "https://via.placeholder.com/300",
+                  }}
+                />
+              ))
+            ) : (
+              <p className="col-span-full text-center text-gray-500">
+                Không tìm thấy sản phẩm liên quan nào.
+              </p>
+            )}
           </div>
         </div>
       </div>
