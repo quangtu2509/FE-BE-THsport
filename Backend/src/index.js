@@ -60,7 +60,7 @@ app.get('/', (req, res) => {
   res.json({
     message: 'Welcome to TH Sport API',
     version: '1.0.0',
-    documentation: `http://localhost:${PORT}/api-docs`
+    documentation: process.env.NODE_ENV === 'production' ? 'https://thsport-backend.onrender.com/api-docs' : `http://localhost:${PORT}/api-docs`
   });
 });
 
@@ -103,6 +103,7 @@ app.use((req, res) => {
 // Start Server
 app.listen(PORT, () => {
   console.log(`✓ Server running on http://localhost:${PORT}`);
-  console.log(`✓ API Documentation available at http://localhost:${PORT}/api-docs`);
+  const docsUrl = process.env.NODE_ENV === 'production' ? 'https://thsport-backend.onrender.com/api-docs' : `http://localhost:${PORT}/api-docs`;
+  console.log(`✓ API Documentation available at ${docsUrl}`);
   console.log(`✓ MongoDB connected to ${MONGO_URI}`);
 });
