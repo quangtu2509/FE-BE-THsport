@@ -22,8 +22,8 @@ services:
     name: thsport-frontend
     runtime: node
     rootDir: Frontend
-    buildCommand: npm install && npm run build
-    startCommand: npm run preview
+    buildCommand: cd Frontend && npm install && npm run build
+    startCommand: cd Frontend && npm run start
     envVars:
       - key: VITE_API_URL
         value: https://thsport-backend.onrender.com/api
