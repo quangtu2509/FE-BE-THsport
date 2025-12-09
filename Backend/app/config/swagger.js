@@ -21,7 +21,7 @@ const swaggerSpec = {
       description: 'Development server - Port 5000'
     },
     {
-      url: 'https://api.thsport.com/api',
+      url: 'https://thsport-backend.onrender.com/api',
       description: 'Production server'
     }
   ],
