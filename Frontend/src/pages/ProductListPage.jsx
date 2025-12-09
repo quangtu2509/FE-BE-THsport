@@ -139,7 +139,11 @@ export default function ProductListPage() {
         slug: p.slug,
         name: p.name,
         price: p.price,
+        originalPrice: p.originalPrice,
         brand: p.brand?.name,
+        stock: p.stock || 0,
+        sold: p.sold || 0,
+        description: p.description,
         imageUrl:
           p.images?.length > 0
             ? p.images[0]

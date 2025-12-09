@@ -36,8 +36,14 @@ export default function BrandProductsPage() {
 
           const formattedProducts = response.data.map((p) => ({
             id: p._id,
+            slug: p.slug,
             name: p.name,
             price: p.price,
+            originalPrice: p.originalPrice,
+            stock: p.stock || 0,
+            sold: p.sold || 0,
+            description: p.description,
+            brand: p.brand?.name,
             imageUrl:
               p.images?.length > 0
                 ? p.images[0]

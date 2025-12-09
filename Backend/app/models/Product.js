@@ -67,6 +67,26 @@ productSchema.index({ category: 1, brand: 1 });
 productSchema.index({ isActive: 1, isFeatured: 1 });
 productSchema.index({ isActive: 1, isNewArrival: 1 });
 productSchema.index({ gender: 1, category: 1 }); // Filter theo giới tính + category
+// Helper function to generate slug
+function generateSlug(name) {
+  return name
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // Remove diacritics
+    .replace(/đ/g, 'd')
+    .replace(/[^a-z0-9\s-]/g, '')
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-');
+}
+
+// Auto-generate slug before save
+productSchema.pre('save', function(next) {
+  if (this.isModified('name') && !this.slug) {
+    this.slug = generateSlug(this.name);
+  }
+  next();
+});
 
 // Virtual để tính discount percentage
 productSchema.virtual('discountPercent').get(function() {

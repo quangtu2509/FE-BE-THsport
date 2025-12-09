@@ -110,8 +110,8 @@ exports.getProducts = async (req, res) => {
       .limit(Number(limit))
       .lean(); // Return plain JS objects, not Mongoose docs
     
-    // Select only needed fields để giảm dung lượng data
-    const products = await query.select('name slug price images category brand rating reviews');
+    // Select only needed fields để giảm dung lượng data (QUAN TRỌNG: Thêm stock và sold)
+    const products = await query.select('name slug price originalPrice images category brand rating reviews stock sold isXakho');
 
     // Get total count for pagination (optimize với countDocuments)
     const total = await Product.countDocuments(filter);
@@ -275,7 +275,7 @@ exports.searchProducts = async (req, res) => {
       .populate('brand category')
       .skip(skip)
       .limit(Number(limit))
-      .select('name slug price images category brand rating reviews')
+      .select('name slug price originalPrice images category brand rating reviews stock sold isXakho')
       .lean();
 
     const total = await Product.countDocuments(filter);
