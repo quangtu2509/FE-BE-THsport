@@ -23,12 +23,17 @@ export default function AdminOrdersPage() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState({ page: 1, pages: 1, total: 0 });
+  const [searchQuery, setSearchQuery] = useState("");
 
-  const fetchOrders = useCallback(async (page = 1) => {
+  const fetchOrders = useCallback(async (page = 1, search = "") => {
     setLoading(true);
     try {
       // API lấy tất cả đơn hàng (Admin)
-      const response = await fetchApi(`/admin/orders?page=${page}&limit=20`);
+      let url = `/admin/orders?page=${page}&limit=20`;
+      if (search) {
+        url += `&search=${encodeURIComponent(search)}`;
+      }
+      const response = await fetchApi(url);
       // Backend có thể trả về {data: {orders, pagination}} hoặc {orders, pagination}
       const data = response.data || response;
       setOrders(data.orders || []);
@@ -45,15 +50,23 @@ export default function AdminOrdersPage() {
   }, [fetchOrders]);
 
   const handlePageChange = (newPage) => {
-    fetchOrders(newPage);
+    fetchOrders(newPage, searchQuery);
   };
 
-  const handleUpdateStatus = async (orderId, newStatus) => {
+  const handleSearch = (e) => {
+    e.preventDefault();
+    fetchOrders(1, searchQuery);
+  };
+
+  const handleClearSearch = () => {
+    setSearchQuery("");
+    fetchOrders(1, "");
+  };
+
+  const handleUpdateStatus = async (orderId, orderCode, newStatus) => {
     if (
       !window.confirm(
-        `Bạn có chắc chắn muốn chuyển trạng thái đơn hàng #${orderId
-          .slice(-6)
-          .toUpperCase()} sang ${newStatus.toUpperCase()}?`
+        `Bạn có chắc chắn muốn chuyển trạng thái đơn hàng ${orderCode || '#' + orderId.slice(-6).toUpperCase()} sang ${newStatus.toUpperCase()}?`
       )
     ) {
       return;
@@ -66,9 +79,7 @@ export default function AdminOrdersPage() {
         body: JSON.stringify({ status: newStatus }),
       });
       toast.success(
-        `Cập nhật trạng thái đơn hàng #${orderId
-          .slice(-6)
-          .toUpperCase()} thành công.`
+        `Cập nhật trạng thái đơn hàng ${orderCode || '#' + orderId.slice(-6).toUpperCase()} thành công.`
       );
       fetchOrders(pagination.page); // Tải lại trang hiện tại
     } catch (error) {
@@ -88,7 +99,31 @@ export default function AdminOrdersPage() {
 
   return (
     <div>
-      <div className="mb-4">
+      <div className="mb-6">
+        <form onSubmit={handleSearch} className="flex gap-2 mb-4">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Tìm theo mã đơn hàng, email, số điện thoại..."
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <button
+            type="submit"
+            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Tìm kiếm
+          </button>
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={handleClearSearch}
+              className="px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+            >
+              Xóa
+            </button>
+          )}
+        </form>
         <span className="font-medium text-gray-600">
           Tổng cộng: {pagination?.total || 0} đơn hàng
         </span>
@@ -122,7 +157,7 @@ export default function AdminOrdersPage() {
             {orders.map((order) => (
               <tr key={order._id}>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                  #{order._id.slice(-6).toUpperCase()}
+                  {order.orderCode || `#${order._id.slice(-6).toUpperCase()}`}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm text-gray-900">{order.user?.name || 'N/A'}</div>
@@ -149,7 +184,7 @@ export default function AdminOrdersPage() {
                   <select
                     defaultValue={order.status}
                     onChange={(e) =>
-                      handleUpdateStatus(order._id, e.target.value)
+                      handleUpdateStatus(order._id, order.orderCode, e.target.value)
                     }
                     className="border border-gray-300 rounded-md p-1 text-sm"
                   >

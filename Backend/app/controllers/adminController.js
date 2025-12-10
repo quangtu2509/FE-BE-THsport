@@ -53,6 +53,28 @@ exports.getAllOrders = async (req, res) => {
     const filter = {};
     if (status) filter.status = status;
 
+    // Tìm kiếm theo mã đơn hàng, email, hoặc số điện thoại
+    if (search) {
+      const searchRegex = new RegExp(search, 'i');
+      
+      // Tìm user IDs matching search query
+      const matchingUsers = await User.find({
+        $or: [
+          { email: searchRegex },
+          { phone: searchRegex },
+          { name: searchRegex }
+        ]
+      }).select('_id');
+      
+      const userIds = matchingUsers.map(u => u._id);
+      
+      // Tìm orders với orderCode hoặc user matching
+      filter.$or = [
+        { orderCode: searchRegex },
+        { user: { $in: userIds } }
+      ];
+    }
+
     const orders = await Order.find(filter)
       .sort('-createdAt')
       .skip(skip)

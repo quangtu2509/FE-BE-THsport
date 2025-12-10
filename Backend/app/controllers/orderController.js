@@ -1,5 +1,7 @@
 const httpStatus = require("../constants/httpStatus");
 const Order = require("../models/Order");
+const Cart = require("../models/Cart");
+const Product = require("../models/Product");
 const responseHelper = require("../helpers/response.helper");
 
 exports.createOrder = async (req, res) => {
@@ -17,15 +19,18 @@ exports.createOrder = async (req, res) => {
       return res.status(400).json({ error: "Items không thể rỗng" });
     }
 
-    if (
-      !shippingAddress ||
-      !shippingAddress.fullName ||
-      !shippingAddress.phone ||
-      !shippingAddress.street
-    ) {
+    // Validation địa chỉ giao hàng
+    if (!shippingAddress) {
       return res
         .status(400)
-        .json({ error: "Thông tin địa chỉ giao hàng không đầy đủ" });
+        .json({ error: "Vui lòng cung cấp địa chỉ giao hàng" });
+    }
+
+    // Kiểm tra các trường bắt buộc
+    if (!shippingAddress.fullName || !shippingAddress.phone || !shippingAddress.street) {
+      return res
+        .status(400)
+        .json({ error: "Thông tin địa chỉ giao hàng không đầy đủ (thiếu tên, SĐT hoặc địa chỉ)" });
     }
 
     // Tính subtotal từ items
@@ -82,13 +87,15 @@ exports.createOrder = async (req, res) => {
 
     res.status(201).json({
       success: true,
+      statusCode: 201,
       message: "Đặt hàng thành công",
-      order: {
+      data: {
         _id: order._id,
         orderCode: order.orderCode,
         total: order.total,
         status: order.status,
         paymentMethod: order.paymentMethod,
+        createdAt: order.createdAt,
       },
     });
   } catch (err) {
@@ -331,89 +338,116 @@ exports.getOrderHistory = async (req, res) => {
 // Public lookup - tra cứu đơn hàng bằng orderCode và phone
 exports.lookupOrder = async (req, res) => {
   try {
-    const { orderId } = req.params;
+    // Hỗ trợ cả query params và route params
+    const orderId = req.query.orderId || req.params.orderId || '';
+    const phone = req.query.phone || '';
 
-    // 1. Chuẩn hóa input
-    const lookupKey = orderId.replace(/^#/, "").toUpperCase();
-    const isObjectId = /^[0-9A-F]{24}$/i.test(lookupKey); // 24 ký tự (ID đầy đủ)
-    const isShortHex = /^[0-9A-F]{6}$/i.test(lookupKey); // 6 ký tự (ID rút gọn)
+    console.log("=== LOOKUP REQUEST ===");
+    console.log("orderId:", orderId);
+    console.log("phone:", phone);
+
+    if (!orderId && !phone) {
+      return responseHelper.error(res, httpStatus.BAD_REQUEST, {
+        error: "Vui lòng cung cấp mã đơn hàng hoặc số điện thoại"
+      });
+    }
 
     let order;
 
-    if (isObjectId) {
-      // TRƯỜNG HỢP A: ID MongoDB ĐẦY ĐỦ (Ưu tiên tìm kiếm nhanh)
-      order = await Order.findById(lookupKey).select("-user");
-    }
+    // Tìm theo orderCode (ưu tiên)
+    if (orderId) {
+      const lookupKey = orderId.replace(/^#/, '').trim();
+      console.log("Looking up with key:", lookupKey);
+      
+      // Tìm theo orderCode trước
+      order = await Order.findOne({ 
+        orderCode: { $regex: lookupKey, $options: 'i' }
+      });
+      console.log("Found by orderCode:", order ? order.orderCode : "NOT FOUND");
 
-    if (!order && isShortHex) {
-      // TRƯỜNG HỢP B: ID RÚT GỌN (6 KÝ TỰ HEX)
-      // Sử dụng Aggregation Pipeline để so khớp 6 ký tự cuối của ObjectId
-      const orders = await Order.aggregate([
-        {
-          $match: {
-            // So khớp 6 ký tự cuối của _id.toString() với lookupKey
-            $expr: {
-              $eq: [
-                // Lấy 6 ký tự cuối của ID (chuyển sang HOA để so sánh)
-                {
-                  $substrCP: [
-                    { $toUpper: { $toString: "$_id" } },
-                    { $subtract: [{ $strLenCP: { $toString: "$_id" } }, 6] },
-                    6,
+      // Nếu không tìm thấy, thử tìm theo _id
+      if (!order) {
+        const isObjectId = /^[0-9A-F]{24}$/i.test(lookupKey);
+        if (isObjectId) {
+          order = await Order.findById(lookupKey);
+          console.log("Found by _id:", order ? "YES" : "NO");
+        } else if (lookupKey.length === 6) {
+          // Tìm theo 6 ký tự cuối của _id
+          const orders = await Order.aggregate([
+            {
+              $match: {
+                $expr: {
+                  $eq: [
+                    {
+                      $substrCP: [
+                        { $toUpper: { $toString: "$_id" } },
+                        { $subtract: [{ $strLenCP: { $toString: "$_id" } }, 6] },
+                        6,
+                      ],
+                    },
+                    lookupKey.toUpperCase(),
                   ],
                 },
-                lookupKey, // Đã được chuẩn hóa là HOA
-              ],
+              },
             },
-          },
-        },
-        // Sắp xếp và giới hạn 1 kết quả mới nhất
-        { $sort: { createdAt: -1 } },
-        { $limit: 1 },
-      ]);
-      order = orders[0];
+            { $sort: { createdAt: -1 } },
+            { $limit: 1 },
+          ]);
+          order = orders[0];
+          console.log("Found by 6-char _id:", order ? "YES" : "NO");
+        }
+      }
     }
 
-    if (!order && lookupKey.length >= 6) {
-      // TRƯỜNG HỢP C: SĐT/TÊN (Hoặc ID rút gọn không tìm thấy bằng Aggregation)
-      // Dùng findOne với regex cho SĐT/Tên
-      order = await Order.findOne({
-        shippingAddress: { $regex: lookupKey, $options: "i" },
-      })
-        .select("-user")
-        .sort("-createdAt");
+    // Nếu có phone, filter thêm hoặc tìm theo phone
+    if (phone) {
+      const phoneRegex = new RegExp(phone.replace(/\s+/g, ''), 'i');
+      
+      if (order) {
+        // Đã có order từ orderId, kiểm tra phone có khớp không
+        const orderPhone = order.shippingAddress?.phone || '';
+        if (!phoneRegex.test(orderPhone.replace(/\s+/g, ''))) {
+          order = null; // Phone không khớp
+        }
+      } else {
+        // Chưa có order, tìm theo phone
+        order = await Order.findOne({
+          'shippingAddress.phone': phoneRegex
+        }).sort('-createdAt');
+      }
     }
 
     if (!order) {
       return responseHelper.error(res, httpStatus.NOT_FOUND, {
-        error:
-          "Không tìm thấy đơn hàng. Vui lòng kiểm tra lại Mã đơn hàng hoặc SĐT.",
+        error: "Không tìm thấy đơn hàng. Vui lòng kiểm tra lại mã đơn hàng hoặc số điện thoại.",
       });
     }
 
-    // 2. Map dữ liệu
+    // Map dữ liệu
     const orderToMap = order.toObject ? order.toObject() : order;
 
     const lookupData = {
-      id: orderToMap._id,
-      date: orderToMap.createdAt,
+      _id: orderToMap._id,
+      orderCode: orderToMap.orderCode,
+      createdAt: orderToMap.createdAt,
       status: orderToMap.status,
       total: orderToMap.total,
-      // Đảm bảo thông tin chi tiết sản phẩm được gửi đi
+      paymentMethod: orderToMap.paymentMethod,
+      shippingAddress: orderToMap.shippingAddress,
+      customer: orderToMap.shippingAddress?.fullName || 'Khách hàng',
       items: orderToMap.items.map((item) => ({
         name: item.name,
         quantity: item.quantity,
-        imageUrl: item.image,
+        image: item.image,
         price: item.price,
+        selectedSize: item.selectedSize,
       })),
-      shippingAddress: orderToMap.shippingAddress.split(",")[0],
-      createdAt: orderToMap.createdAt,
     };
 
-    return responseHelper.success(res, httpStatus.OK, lookupData);
+    console.log("Returning lookup data:", lookupData);
+    return responseHelper.success(res, lookupData, 'Tra cứu thành công', httpStatus.OK);
   } catch (err) {
     console.error("Lỗi tra cứu:", err);
-    // Thay vì trả về CastError, trả về lỗi chung cho Frontend
     return responseHelper.error(res, httpStatus.BAD_REQUEST, {
       error: err.message || "Lỗi không xác định khi tra cứu đơn hàng.",
     });

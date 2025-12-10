@@ -5,17 +5,39 @@ import { toast } from "react-toastify";
 
 const getStatusColor = (status) => {
   switch (status?.toLowerCase()) {
+    case "delivered":
     case "completed":
-      return "text-green-600";
+      return "text-green-600 bg-green-50";
+    case "shipping":
     case "delivering":
+      return "text-blue-600 bg-blue-50";
     case "confirmed":
-      return "text-blue-600";
+      return "text-indigo-600 bg-indigo-50";
     case "pending":
-      return "text-yellow-600";
+      return "text-yellow-600 bg-yellow-50";
     case "cancelled":
-      return "text-red-600";
+      return "text-red-600 bg-red-50";
     default:
-      return "text-gray-600";
+      return "text-gray-600 bg-gray-50";
+  }
+};
+
+const getStatusText = (status) => {
+  switch (status?.toLowerCase()) {
+    case "delivered":
+    case "completed":
+      return "Đã giao";
+    case "shipping":
+    case "delivering":
+      return "Đang giao";
+    case "confirmed":
+      return "Đã xác nhận";
+    case "pending":
+      return "Chờ xác nhận";
+    case "cancelled":
+      return "Đã hủy";
+    default:
+      return status;
   }
 };
 
@@ -40,17 +62,40 @@ export default function OrderLookupPage() {
       // Gọi API tra cứu đơn hàng công khai (dùng Query string)
       const data = await fetchApi(
         `/orders/lookup?orderId=${orderId}&phone=${phoneNumber}`
-      ); // Backend trả về dữ liệu đơn hàng trực tiếp
-      if (data && data._id) {
+      );
+      
+      console.log("=== LOOKUP RESPONSE ===");
+      console.log("Raw data:", data);
+      
+      // fetchApi có thể wrap response trong data property
+      const orderData = data.data || data;
+      console.log("Order data:", orderData);
+      console.log("Has _id?", orderData && orderData._id);
+      
+      // Backend trả về dữ liệu đơn hàng trực tiếp
+      if (orderData && orderData._id) {
         // Map dữ liệu từ Backend
         setLookupResult({
-          status: "success", // Lấy 6 ký tự cuối của ID
-          id: data._id.slice(-6).toUpperCase(),
-          date: new Date(data.createdAt).toLocaleDateString("vi-VN"), // Sử dụng trường 'customer' được Backend map từ shippingAddress
-          customer: data.customer || "Khách hàng",
-          items: data.items, // LƯU TRỮ TOÀN BỘ MẢNG ITEMS
-          total: data.total, // Lưu tổng tiền dưới dạng số
-          orderStatus: data.status,
+          status: "success",
+          // Ưu tiên dùng orderCode, nếu không có thì dùng 6 ký tự cuối _id
+          id: orderData.orderCode || `#${orderData._id.slice(-6).toUpperCase()}`,
+          date: new Date(orderData.createdAt).toLocaleDateString("vi-VN", {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          }),
+          // Sử dụng trường 'customer' được Backend map từ shippingAddress
+          customer: orderData.customer || orderData.shippingAddress?.fullName || "Khách hàng",
+          phone: orderData.shippingAddress?.phone || phoneNumber,
+          address: orderData.shippingAddress ? 
+            `${orderData.shippingAddress.street}, ${orderData.shippingAddress.ward}, ${orderData.shippingAddress.district}, ${orderData.shippingAddress.province}` 
+            : '',
+          items: orderData.items, // LƯU TRỮ TOÀN BỘ MẢNG ITEMS
+          total: orderData.total, // Lưu tổng tiền dưới dạng số
+          orderStatus: orderData.status,
+          paymentMethod: orderData.paymentMethod,
         });
       } else {
         setLookupResult({
@@ -128,71 +173,102 @@ export default function OrderLookupPage() {
           {lookupResult.status === "success" && (
             <div className="flex flex-col gap-4">
               {/* Thông tin chung */}
-              <div className="border-b pb-4 space-y-2">
-                <p>
-                  <strong>Mã đơn hàng:</strong>
-                  {lookupResult.id}
-                </p>
-                <p>
-                  <strong>Ngày đặt:</strong>
-                  {lookupResult.date}
-                </p>
-
-                <p>
-                  <strong>Khách hàng:</strong>
-                  {lookupResult.customer}
-                </p>
-                <p>
-                  <strong>Trạng thái:</strong>
-
+              <div className="border-b pb-4 space-y-3">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <p className="text-lg">
+                      <strong>Mã đơn hàng:</strong>
+                      <span className="ml-2 text-primary font-bold">{lookupResult.id}</span>
+                    </p>
+                    <p className="text-sm text-gray-600 mt-1">
+                      <strong>Ngày đặt:</strong>
+                      <span className="ml-2">{lookupResult.date}</span>
+                    </p>
+                  </div>
                   <span
-                    className={`font-bold ml-2 ${getStatusColor(
+                    className={`px-3 py-1 rounded-full text-sm font-semibold ${getStatusColor(
                       lookupResult.orderStatus
                     )}`}
                   >
-                    {lookupResult.orderStatus.toUpperCase()}
+                    {getStatusText(lookupResult.orderStatus)}
                   </span>
+                </div>
+
+                <p>
+                  <strong>Khách hàng:</strong>
+                  <span className="ml-2">{lookupResult.customer}</span>
                 </p>
+                
+                {lookupResult.phone && (
+                  <p>
+                    <strong>Số điện thoại:</strong>
+                    <span className="ml-2">{lookupResult.phone}</span>
+                  </p>
+                )}
+                
+                {lookupResult.address && (
+                  <p>
+                    <strong>Địa chỉ giao hàng:</strong>
+                    <span className="ml-2 text-sm">{lookupResult.address}</span>
+                  </p>
+                )}
+                
+                {lookupResult.paymentMethod && (
+                  <p>
+                    <strong>Phương thức thanh toán:</strong>
+                    <span className="ml-2">
+                      {lookupResult.paymentMethod === 'cod' ? 'COD - Thanh toán khi nhận hàng' : 
+                       lookupResult.paymentMethod === 'bank_transfer' ? 'Chuyển khoản ngân hàng' :
+                       lookupResult.paymentMethod.toUpperCase()}
+                    </span>
+                  </p>
+                )}
               </div>
-              <h3 className="text-lg font-bold">Sản phẩm đã đặt:</h3>
-              {Array.isArray(lookupResult.items) &&
-                lookupResult.items.map((item, index) => (
-                  <div
-                    key={index}
-                    className="flex items-start justify-between border-b pb-2 last:border-b-0"
-                  >
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-                      <img
-                        src={
-                          item.imageUrl ||
-                          item.image ||
-                          "https://via.placeholder.com/50"
-                        }
-                        alt={item.name}
-                        className="w-12 h-12 object-cover rounded-md border"
-                      />
-                      <div>
-                        <p className="text-sm font-medium">{item.name}</p>
-                        <p className="text-xs text-gray-500">
-                          SL: {item.quantity}
+              <h3 className="text-lg font-bold mt-2">Sản phẩm đã đặt:</h3>
+              <div className="space-y-3">
+                {Array.isArray(lookupResult.items) &&
+                  lookupResult.items.map((item, index) => (
+                    <div
+                      key={index}
+                      className="flex items-start justify-between border-b pb-3 last:border-b-0"
+                    >
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 flex-1">
+                        <img
+                          src={
+                            item.imageUrl ||
+                            item.image ||
+                            "https://via.placeholder.com/60"
+                          }
+                          alt={item.name}
+                          className="w-16 h-16 object-cover rounded-md border"
+                        />
+                        <div className="flex-1">
+                          <p className="font-medium">{item.name}</p>
+                          {item.selectedSize && (
+                            <p className="text-sm text-gray-600">Size: {item.selectedSize}</p>
+                          )}
+                          <p className="text-sm text-gray-500">
+                            Số lượng: {item.quantity}
+                          </p>
+                          <p className="text-sm font-semibold text-primary">
+                            Đơn giá: {(item.price || 0).toLocaleString("vi-VN")}₫
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold text-lg text-red-600">
+                          {((item.price || 0) * item.quantity).toLocaleString("vi-VN")}₫
                         </p>
                       </div>
                     </div>
-                    <p className="text-sm font-semibold">
-                      {((item.price || 0) * item.quantity).toLocaleString(
-                        "vi-VN"
-                      )}
-                      ₫
-                    </p>
-                  </div>
-                ))}
-              <div className="flex justify-between font-bold text-lg border-t pt-4">
+                  ))}
+              </div>
+              <div className="flex justify-between items-center font-bold text-xl border-t-2 pt-4 mt-2">
                 <span>Tổng cộng:</span>
-                <span className="text-red-600">
+                <span className="text-red-600 text-2xl">
                   {lookupResult.total
                     ? lookupResult.total.toLocaleString("vi-VN")
-                    : "0"}
-                  ₫
+                    : "0"}₫
                 </span>
               </div>
             </div>

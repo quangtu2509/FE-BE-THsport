@@ -114,19 +114,52 @@ function OrdersTab({ currentUser }) {
   // Nhận currentUser từ component cha
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filteredOrders, setFilteredOrders] = useState([]);
 
   // Fetch orders from API
   const fetchOrders = useCallback(async () => {
-    if (!currentUser) return; // Không fetch nếu chưa đăng nhập
+    if (!currentUser) {
+      setOrders([]);
+      setLoading(false);
+      return;
+    }
 
     setLoading(true);
     try {
       // Endpoint: GET /orders (Lấy tất cả đơn hàng của user)
       const response = await fetchApi("/orders?limit=100");
-      setOrders(response.orders || []);
+      console.log("Orders response:", response);
+      
+      // fetchApi wrap response: { success: true, data: { orders: [...], pagination: {...} } }
+      // Hoặc trả về trực tiếp: { orders: [...], pagination: {...} }
+      let ordersList = [];
+      
+      if (response.data && response.data.orders) {
+        // Format mới từ fetchApi wrapper
+        ordersList = response.data.orders;
+      } else if (response.orders) {
+        // Format cũ trực tiếp
+        ordersList = response.orders;
+      }
+      
+      console.log("Orders list:", ordersList);
+      console.log("Is ordersList an array?", Array.isArray(ordersList));
+      
+      // Đảm bảo luôn là array
+      if (Array.isArray(ordersList)) {
+        setOrders(ordersList);
+        setFilteredOrders(ordersList);
+      } else {
+        console.error("Orders list is not an array:", ordersList);
+        setOrders([]);
+        setFilteredOrders([]);
+      }
     } catch (error) {
       console.error("Lỗi khi tải đơn hàng:", error);
+      toast.error("Không thể tải lịch sử đơn hàng");
       setOrders([]);
+      setFilteredOrders([]);
     } finally {
       setLoading(false);
     }
@@ -136,21 +169,66 @@ function OrdersTab({ currentUser }) {
     fetchOrders();
   }, [fetchOrders]);
 
+  // Tìm kiếm đơn hàng
+  const handleSearch = (query) => {
+    setSearchQuery(query);
+    if (!query.trim()) {
+      setFilteredOrders(orders);
+      return;
+    }
+    
+    const searchLower = query.toLowerCase();
+    const filtered = orders.filter(order => {
+      const orderCode = order.orderCode || '';
+      const items = order.items || [];
+      const itemNames = items.map(item => item.name || '').join(' ');
+      
+      return (
+        orderCode.toLowerCase().includes(searchLower) ||
+        itemNames.toLowerCase().includes(searchLower)
+      );
+    });
+    
+    setFilteredOrders(filtered);
+  };
+
+  const handleClearSearch = () => {
+    setSearchQuery("");
+    setFilteredOrders(orders);
+  };
+
   // Helper để hiển thị trạng thái và màu sắc
   const getStatusColor = (status) => {
     switch (status) {
-      case "completed":
-        return "text-green-600";
-      case "delivering":
-        return "text-blue-600";
+      case "delivered":
+        return "text-green-600 bg-green-50";
+      case "shipping":
+        return "text-blue-600 bg-blue-50";
       case "confirmed":
-        return "text-indigo-600";
+        return "text-indigo-600 bg-indigo-50";
       case "pending":
-        return "text-yellow-600";
+        return "text-yellow-600 bg-yellow-50";
       case "cancelled":
-        return "text-red-600";
+        return "text-red-600 bg-red-50";
       default:
-        return "text-gray-600";
+        return "text-gray-600 bg-gray-50";
+    }
+  };
+
+  const getStatusText = (status) => {
+    switch (status) {
+      case "delivered":
+        return "Đã giao";
+      case "shipping":
+        return "Đang giao";
+      case "confirmed":
+        return "Đã xác nhận";
+      case "pending":
+        return "Chờ xác nhận";
+      case "cancelled":
+        return "Đã hủy";
+      default:
+        return status;
     }
   };
 
@@ -163,7 +241,7 @@ function OrdersTab({ currentUser }) {
     );
   }
 
-  if (orders.length === 0) {
+  if (!Array.isArray(orders) || orders.length === 0) {
     return (
       <div>
         <h2 className="text-2xl font-bold mb-4">Lịch sử đơn hàng</h2>
@@ -175,36 +253,105 @@ function OrdersTab({ currentUser }) {
   return (
     <div>
       <h2 className="text-2xl font-bold mb-4">
-        Lịch sử đơn hàng ({orders.length})
+        Lịch sử đơn hàng ({Array.isArray(orders) ? orders.length : 0})
       </h2>
+      
+      {/* Search box */}
+      <div className="mb-6">
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => handleSearch(e.target.value)}
+            placeholder="Tìm theo mã đơn hàng hoặc tên sản phẩm..."
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          {searchQuery && (
+            <button
+              onClick={handleClearSearch}
+              className="px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+            >
+              Xóa
+            </button>
+          )}
+        </div>
+        {searchQuery && (
+          <p className="text-sm text-gray-600 mt-2">
+            Tìm thấy {filteredOrders.length} đơn hàng
+          </p>
+        )}
+      </div>
+      
       <div className="space-y-4">
-        {orders.map((order) => (
-          <div key={order._id} className="p-4 border rounded-lg shadow-sm">
-            <div className="flex justify-between items-center mb-2">
-              <p className="font-bold">
-                Mã đơn hàng: #{order._id.slice(-6).toUpperCase()}
-              </p>
-              <span className={`font-bold ${getStatusColor(order.status)}`}>
-                {order.status.toUpperCase()}
+        {Array.isArray(filteredOrders) && filteredOrders.map((order) => (
+          <div key={order._id} className="p-4 border rounded-lg shadow-sm bg-white hover:shadow-md transition-shadow">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-3 gap-2">
+              <div>
+                <p className="font-bold text-lg">
+                  Mã: {order.orderCode || `#${order._id.slice(-8).toUpperCase()}`}
+                </p>
+                <p className="text-sm text-gray-500">
+                  {new Date(order.createdAt).toLocaleDateString("vi-VN", {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })}
+                </p>
+              </div>
+              <span className={`px-3 py-1 rounded-full text-sm font-semibold ${getStatusColor(order.status)}`}>
+                {getStatusText(order.status)}
               </span>
             </div>
-            <p>
-              <strong>Tổng tiền:</strong> {order.total ? order.total.toLocaleString("vi-VN") : "0"}{" "}
-              ₫
-            </p>
-            <p>
-              <strong>Ngày đặt:</strong>{" "}
-              {new Date(order.createdAt).toLocaleDateString("vi-VN")}
-            </p>
-            <div className="mt-2 text-sm text-gray-600">
-              {order.items.slice(0, 2).map((item) => (
-                <p key={item.productId || item.name} className="truncate">
-                  - {item.name} x {item.quantity}
-                </p>
-              ))}
-              {order.items.length > 2 && (
-                <p>... và {order.items.length - 2} sản phẩm khác</p>
+            
+            <div className="border-t pt-3 space-y-2">
+              <div className="flex justify-between">
+                <span className="text-gray-600">Tổng tiền:</span>
+                <span className="font-bold text-lg text-primary">
+                  {order.total ? order.total.toLocaleString("vi-VN") : "0"} ₫
+                </span>
+              </div>
+              
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Thanh toán:</span>
+                <span className="font-medium">
+                  {order.paymentMethod === 'cod' ? 'COD' : 
+                   order.paymentMethod === 'bank_transfer' ? 'Chuyển khoản' : 
+                   order.paymentMethod.toUpperCase()}
+                </span>
+              </div>
+              
+              {order.shippingAddress && (
+                <div className="text-sm text-gray-600">
+                  <span className="font-medium">Giao đến:</span> {order.shippingAddress.fullName} - {order.shippingAddress.phone}
+                </div>
               )}
+            </div>
+            
+            <div className="mt-3 border-t pt-3">
+              <p className="text-sm font-semibold mb-2">Sản phẩm:</p>
+              <div className="space-y-1">
+                {order.items && order.items.length > 0 ? (
+                  <>
+                    {order.items.slice(0, 3).map((item, idx) => (
+                      <div key={idx} className="flex justify-between text-sm">
+                        <span className="text-gray-700 truncate flex-1">
+                          {item.name} {item.selectedSize ? `(Size: ${item.selectedSize})` : ''}
+                        </span>
+                        <span className="text-gray-600 ml-2">x{item.quantity}</span>
+                      </div>
+                    ))}
+                    {order.items.length > 3 && (
+                      <p className="text-sm text-gray-500 italic">
+                        ... và {order.items.length - 3} sản phẩm khác
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <p className="text-sm text-gray-500">Không có sản phẩm</p>
+                )}
+              </div>
             </div>
           </div>
         ))}

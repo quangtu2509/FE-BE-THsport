@@ -39,6 +39,7 @@ export default function CheckoutPage() {
   const { currentUser } = useAuth(); // Lấy người dùng hiện tại
   const navigate = useNavigate();
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("cod"); // Mặc định là COD
   const [formData, setFormData] = useState({
     fullName: currentUser ? currentUser.name : "",
@@ -58,7 +59,6 @@ export default function CheckoutPage() {
 
   // Hàm xử lý khi người dùng nhấn "Hoàn tất đơn hàng"
   const handlePlaceOrder = async (e) => {
-    // SỬA: Thêm async
     e.preventDefault();
 
     // 1. Kiểm tra trạng thái giỏ hàng và đăng nhập
@@ -72,10 +72,18 @@ export default function CheckoutPage() {
       return;
     }
 
+    // 2. Validate form
+    if (!formData.fullName || !formData.phone || !formData.province || !formData.district || !formData.street) {
+      toast.error("Vui lòng điền đầy đủ thông tin giao hàng.");
+      return;
+    }
+
+    setIsSubmitting(true);
+
     try {
-      // 2. Chuẩn bị dữ liệu cho API theo cấu trúc Order Model của Backend
+      // 3. Chuẩn bị dữ liệu cho API theo cấu trúc Order Model của Backend
       const orderItems = cartItems.map((item) => ({
-        productId: item.originalProductId, // Sử dụng ID sản phẩm thật từ Backend
+        productId: item.originalProductId || item.id, // Sử dụng ID sản phẩm thật từ Backend
         name: item.name,
         price: item.price,
         image: item.imageUrl,
@@ -95,27 +103,38 @@ export default function CheckoutPage() {
           phone: formData.phone,
           province: formData.province,
           district: formData.district,
-          ward: formData.ward,
+          ward: formData.ward || "",
           street: formData.street,
-          note: formData.note,
+          note: formData.note || "",
         },
         customerNote: formData.note || "",
       };
 
-      // 3. Gọi API tạo đơn hàng
-      await fetchApi("/orders", {
+      console.log('Order payload:', orderPayload);
+
+      // 4. Gọi API tạo đơn hàng
+      const response = await fetchApi("/orders", {
         method: "POST",
         body: JSON.stringify(orderPayload),
       });
 
-      // 4. Thành công: Xóa giỏ hàng (Context sẽ gọi API xóa giỏ hàng)
-      clearCart();
+      console.log('Order response:', response);
 
-      // 5. Chuyển người dùng đến trang "Cảm ơn"
-      navigate("/dat-hang-thanh-cong");
+      // 5. Thành công: Xóa giỏ hàng
+      await clearCart();
+
+      // 6. Hiển thị thông báo thành công
+      toast.success(`Đặt hàng thành công! Mã đơn hàng: ${response.data?.orderCode || ''}`);
+
+      // 7. Chuyển người dùng đến trang "Cảm ơn"
+      setTimeout(() => {
+        navigate("/dat-hang-thanh-cong");
+      }, 1500);
     } catch (error) {
       console.error("Lỗi khi đặt hàng:", error);
       toast.error(error.message || "Đặt hàng thất bại. Vui lòng thử lại.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -326,9 +345,14 @@ export default function CheckoutPage() {
             </Link>
             <button
               type="submit"
-              className="bg-primary text-white text-lg font-bold uppercase py-4 px-6 rounded-md transition-colors hover:bg-primary-dark"
+              disabled={isSubmitting}
+              className={`bg-primary text-white text-lg font-bold uppercase py-4 px-6 rounded-md transition-colors ${
+                isSubmitting
+                  ? "opacity-50 cursor-not-allowed"
+                  : "hover:bg-red-700"
+              }`}
             >
-              Hoàn tất đơn hàng
+              {isSubmitting ? "Đang xử lý..." : "Hoàn tất đơn hàng"}
             </button>
           </div>
         </form>
